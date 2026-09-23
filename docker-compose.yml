@@ -1,0 +1,55 @@
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: api-gateway
+    command: npm run start:gateway
+    env_file: .env
+    depends_on:
+      - payment-service
+    ports:
+      - "${API_GATEWAY_PORT:-4000}:${API_GATEWAY_PORT:-4000}"
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: payment-service
+    command: npm run start:payment
+    env_file: .env
+    depends_on:
+      - postgres
+    ports:
+      - "${PAYMENT_SERVICE_PORT:-4010}:${PAYMENT_SERVICE_PORT:-4010}"
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-foodmenu}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-foodmenu}
+      POSTGRES_DB: ${POSTGRES_DB:-foodmenu_api}
+    ports:
+      - "5432:5432"
+    volumes:
+      - foodmenu_postgres_data:/var/lib/postgresql/data
+
+  #pgadmin:
+  #  image: dpage/pgadmin4:8
+  #  restart: unless-stopped
+  #  environment:
+  #    PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@foodmenu.local}
+  #    PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+  #  depends_on:
+  #    - postgres
+  #  ports:
+  #    - "5050:80"
+  #  volumes:
+  #    - foodmenu_pgadmin_data:/var/lib/pgadmin
+
+volumes:
+  foodmenu_postgres_data:
+  #foodmenu_pgadmin_data:

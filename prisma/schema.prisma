@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PaymentProvider {
+  STRIPE
+}
+
+enum PaymentStatus {
+  REQUIRES_PAYMENT_METHOD
+  REQUIRES_CONFIRMATION
+  REQUIRES_ACTION
+  PROCESSING
+  REQUIRES_CAPTURE
+  CANCELED
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+model PaymentTransaction {
+  id              String          @id @default(cuid())
+  paymentIntentId String          @unique
+  amount          Int
+  currency        String          @default("gbp")
+  status          PaymentStatus
+  provider        PaymentProvider @default(STRIPE)
+  customerId      String?
+  orderId         String?
+  metadata        Json?
+  refunds         PaymentRefund[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([status])
+  @@index([provider])
+  @@index([orderId])
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model PaymentRefund {
+  id              String             @id @default(cuid())
+  refundId        String             @unique
+  paymentIntentId String
+  amount          Int?
+  reason          String?
+  status          PaymentStatus
+  transaction     PaymentTransaction @relation(fields: [paymentIntentId], references: [paymentIntentId], onDelete: Cascade)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([paymentIntentId])
+  @@index([status])
+  @@index([createdAt])
+}
