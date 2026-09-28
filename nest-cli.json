@@ -27,6 +27,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/payment-service/tsconfig.app.json"
       }
+    },
+    "menu-service": {
+      "type": "application",
+      "root": "apps/menu-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/menu-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/menu-service/tsconfig.app.json"
+      }
     }
   }
 }

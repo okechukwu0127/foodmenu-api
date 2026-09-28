@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import * as express from "express";
+import { join } from "path";
 import helmet from "helmet";
 import { NestFactory } from "@nestjs/core";
 import { ConfigService } from "@nestjs/config";
@@ -18,6 +19,13 @@ async function bootstrap() {
   const allowedOrigin = configService.get<string>("FOODMENU_APP_URL", "*");
 
   app.use("/api/v1/webhooks/stripe", express.raw({ type: "application/json" }));
+  app.use(
+    "/assets",
+    express.static(join(process.cwd(), "public/assets"), {
+      immutable: true,
+      maxAge: "7d",
+    }),
+  );
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: true, limit: "1mb" }));
   app.use(helmet());

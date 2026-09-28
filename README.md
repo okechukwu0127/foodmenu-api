@@ -2,15 +2,16 @@
 
 Production-ready NestJS monorepo backend for the foodMenu mobile app.
 
-The first milestone implements Stripe payments only, while keeping the project
-ready for future services such as orders, menu catalog, users, wallet, and
-notifications.
+The backend currently implements Stripe payments and the public Menu Catalog API,
+while keeping the project ready for future services such as orders, users,
+wallet, and notifications.
 
 ## Architecture
 
 ```text
 apps/
   api-gateway/       Public HTTP API consumed by the mobile app
+  menu-service/      Public read menu/catalog data service
   payment-service/   Stripe + payment persistence microservice
 
 libs/
@@ -23,11 +24,13 @@ libs/
   proto/             Reserved for future gRPC contracts
 
 prisma/
-  schema.prisma      PaymentTransaction and PaymentRefund models
+  schema.prisma      Payment and menu catalog models
+  seed-data/         Modular local seed data
 ```
 
-The API Gateway communicates with payment-service through Nest TCP transport.
-Stripe SDK usage stays isolated inside payment-service.
+The API Gateway communicates with payment-service and menu-service through Nest
+TCP transport. Stripe SDK usage stays isolated inside payment-service, while
+menu-service owns catalog database reads.
 
 ## Local Setup
 
@@ -36,6 +39,7 @@ cp .env.example .env
 npm install
 npm run prisma:generate
 npm run prisma:migrate
+npm run prisma:seed
 npm run start:dev
 ```
 
@@ -49,6 +53,11 @@ npm run docker:up
 Services:
 
 - API Gateway: `http://localhost:4000`
+  - npm run start:dev:gateway
+- Payment service TCP: `localhost:4010`
+  - npm run start:dev:payment
+- Menu service TCP: `localhost:4020`
+  - npm run start:dev:menu
 - Swagger: `http://localhost:4000/api/docs`
 - OpenAPI JSON: `http://localhost:4000/api/docs-json`
 - Postgres: `localhost:5432`
@@ -70,6 +79,8 @@ NODE_ENV
 API_GATEWAY_PORT
 PAYMENT_SERVICE_HOST
 PAYMENT_SERVICE_PORT
+MENU_SERVICE_HOST
+MENU_SERVICE_PORT
 DATABASE_URL
 POSTGRES_USER
 POSTGRES_PASSWORD
@@ -82,6 +93,72 @@ FOODMENU_APP_URL
 ```
 
 Never commit real Stripe keys.
+
+## Menu Catalog Endpoints
+
+The mobile app expects direct payloads, not `{ success, message, data }` wrappers.
+
+### Bootstrap
+
+```bash
+curl http://localhost:4000/api/v1/menu/bootstrap
+```
+
+Response shape:
+
+```json
+{
+  "heroSlides": [],
+  "categories": [],
+  "deals": [],
+  "hotBurgerCombos": [],
+  "drinkAddOns": [],
+  "modifierGroups": [],
+  "modifierLabelTranslations": [],
+  "defaultModifierGroupIds": [],
+  "foodItems": []
+}
+```
+
+### Categories
+
+```bash
+curl http://localhost:4000/api/v1/menu/categories
+```
+
+### Foods
+
+```bash
+curl "http://localhost:4000/api/v1/menu/foods?categoryId=burgers&isPopular=true&limit=10"
+```
+
+Supported filters:
+
+```text
+categoryId
+search
+isPopular
+limit
+cursor
+page
+```
+
+### Food Details
+
+```bash
+curl http://localhost:4000/api/v1/menu/foods/classic-cheeseburger
+```
+
+### Other Menu Routes
+
+```text
+GET /api/v1/menu/deals
+GET /api/v1/menu/hero-slides
+GET /api/v1/menu/hot-combos
+GET /api/v1/menu/drink-add-ons
+GET /api/v1/menu/modifier-groups
+GET /api/v1/menu/modifier-label-translations
+```
 
 ## Payment Endpoints
 
@@ -151,8 +228,12 @@ Any postcode
 ```bash
 npm run prisma:generate
 npm run prisma:migrate
+npm run prisma:seed
 npm run prisma:studio
 ```
+
+Seed data lives in `prisma/seed-data/` and uses stable ids/slugs with upserts, so
+it can be run repeatedly during development.
 
 ## Tests
 
@@ -169,6 +250,16 @@ npm run test:e2e
 4. Register a `ClientsModule` provider in api-gateway.
 5. Keep SDK/vendor-specific logic inside the owning service.
 6. Expose only mobile-safe HTTP routes through api-gateway.
+
+## Migrating Mobile Menu Data
+
+The React Native app can move from local `menuData.ts`, `drinksData.ts`, and
+`heroSlides.ts` files to `GET /api/v1/menu/bootstrap` first. After bootstrap is
+stable, individual screens can switch to smaller endpoints such as
+`/menu/foods`, `/menu/categories`, and `/menu/modifier-groups`.
+
+Future admin write endpoints should live behind auth and role checks. This phase
+intentionally implements public read APIs and seed data only.
 
 ## Future gRPC Upgrade
 
