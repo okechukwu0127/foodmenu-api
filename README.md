@@ -25,7 +25,7 @@ libs/
 
 prisma/
   schema.prisma      Payment and menu catalog models
-  seed-data/         Modular local seed data
+  seed-data/         Full mobile catalog seed snapshot and seed helpers
 ```
 
 The API Gateway communicates with payment-service and menu-service through Nest
@@ -96,7 +96,38 @@ Never commit real Stripe keys.
 
 ## Menu Catalog Endpoints
 
-The mobile app expects direct payloads, not `{ success, message, data }` wrappers.
+All public HTTP API Gateway responses use the same response envelope:
+
+```json
+{
+  "success": true,
+  "status": "success",
+  "statusCode": 200,
+  "message": "Request successful",
+  "data": {},
+  "path": "/api/v1/example",
+  "timestamp": "2026-09-29T00:00:00.000Z"
+}
+```
+
+Error responses use the same metadata with an `error` object:
+
+```json
+{
+  "success": false,
+  "status": "error",
+  "statusCode": 400,
+  "message": "Invalid request payload",
+  "error": {
+    "code": "REQUEST_FAILED",
+    "details": []
+  },
+  "path": "/api/v1/example",
+  "timestamp": "2026-09-29T00:00:00.000Z"
+}
+```
+
+The mobile app should unwrap the actual payload from `response.data.data`.
 
 ### Bootstrap
 
@@ -108,15 +139,23 @@ Response shape:
 
 ```json
 {
-  "heroSlides": [],
-  "categories": [],
-  "deals": [],
-  "hotBurgerCombos": [],
-  "drinkAddOns": [],
-  "modifierGroups": [],
-  "modifierLabelTranslations": [],
-  "defaultModifierGroupIds": [],
-  "foodItems": []
+  "success": true,
+  "status": "success",
+  "statusCode": 200,
+  "message": "Request successful",
+  "data": {
+    "heroSlides": [],
+    "categories": [],
+    "deals": [],
+    "hotBurgerCombos": [],
+    "drinkAddOns": [],
+    "modifierGroups": [],
+    "modifierLabelTranslations": [],
+    "defaultModifierGroupIds": [],
+    "foodItems": []
+  },
+  "path": "/api/v1/menu/bootstrap",
+  "timestamp": "2026-09-29T00:00:00.000Z"
 }
 ```
 
@@ -162,7 +201,8 @@ GET /api/v1/menu/modifier-label-translations
 
 ## Payment Endpoints
 
-The mobile app expects direct payloads, not `{ success, message, data }` wrappers.
+Payment endpoints also use the standard API response envelope. The payment
+result is returned inside `data`.
 
 ### Create Payment Intent
 
@@ -176,9 +216,17 @@ Response:
 
 ```json
 {
-  "clientSecret": "pi_...",
-  "paymentIntentId": "pi_...",
-  "status": "requires_payment_method"
+  "success": true,
+  "status": "success",
+  "statusCode": 201,
+  "message": "Request successful",
+  "data": {
+    "clientSecret": "pi_...",
+    "paymentIntentId": "pi_...",
+    "status": "requires_payment_method"
+  },
+  "path": "/api/v1/payments/stripe/payment-intent",
+  "timestamp": "2026-09-29T00:00:00.000Z"
 }
 ```
 
@@ -232,8 +280,29 @@ npm run prisma:seed
 npm run prisma:studio
 ```
 
-Seed data lives in `prisma/seed-data/` and uses stable ids/slugs with upserts, so
-it can be run repeatedly during development.
+Seed data lives in `prisma/seed-data/`. The menu catalog is populated from
+`prisma/seed-data/mobile-catalog.seed.json`, which mirrors the previous React
+Native local data from `src/data/menuData.ts`, `src/data/drinksData.ts`, and
+`src/data/heroSlides.ts`.
+
+Current local catalog seed size:
+
+```text
+categories: 7
+foodItems: 10
+foodImages: 50
+deals: 6
+heroSlides: 3
+hotBurgerCombos: 5
+drinkAddOns: 4
+appetizerOptions: 4
+modifierGroups: 15
+modifierOptions: 54
+defaultModifierGroups: 41
+```
+
+The seed clears and repopulates the menu catalog tables during development. It
+does not clear payment transaction tables.
 
 ## Tests
 
@@ -257,6 +326,14 @@ The React Native app can move from local `menuData.ts`, `drinksData.ts`, and
 `heroSlides.ts` files to `GET /api/v1/menu/bootstrap` first. After bootstrap is
 stable, individual screens can switch to smaller endpoints such as
 `/menu/foods`, `/menu/categories`, and `/menu/modifier-groups`.
+
+Because API Gateway responses are enveloped, the mobile API client should unwrap
+the backend response before returning data to screens:
+
+```ts
+const response = await apiClient.get("/menu/bootstrap");
+return response.data.data;
+```
 
 Future admin write endpoints should live behind auth and role checks. This phase
 intentionally implements public read APIs and seed data only.
