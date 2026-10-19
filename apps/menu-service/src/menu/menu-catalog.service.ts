@@ -8,6 +8,13 @@ const activeOrder = {
   orderBy: { sortOrder: "asc" as const },
 };
 
+// Promotional membership controls catalog visibility, regardless of campaign dates.
+const catalogFoodWhere = {
+  isActive: true,
+  deals: { none: {} },
+  hotCombos: { none: {} },
+} satisfies Prisma.FoodItemWhereInput;
+
 const foodSelect = {
   appetizerOptions: true,
   calories: true,
@@ -89,7 +96,7 @@ export class MenuCatalogService {
       heroSlides,
       categories,
       deals,
-      hotBurgerCombos,
+      hotCombos,
       drinkAddOns,
       modifierGroups,
       modifierLabelTranslations,
@@ -114,7 +121,7 @@ export class MenuCatalogService {
       drinkAddOns,
       foodItems,
       heroSlides,
-      hotBurgerCombos,
+      hotCombos,
       modifierGroups,
       modifierLabelTranslations,
     };
@@ -146,7 +153,7 @@ export class MenuCatalogService {
   async getFoods(query: FoodListQueryDto) {
     const take = query.limit ?? 20;
     const where: Prisma.FoodItemWhereInput = {
-      isActive: true,
+      ...catalogFoodWhere,
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
       ...(typeof query.isPopular === "boolean"
         ? { isPopular: query.isPopular }
@@ -207,6 +214,7 @@ export class MenuCatalogService {
         description: true,
         discountPercent: true,
         foodItemId: true,
+        foodItem: { select: foodSelect },
         id: true,
         imageUrl: true,
         offerCategory: true,
@@ -228,6 +236,7 @@ export class MenuCatalogService {
 
     return deals.map((deal) => ({
       ...deal,
+      foodItem: deal.foodItem ? this.mapFoodItem(deal.foodItem) : null,
       image: deal.imageUrl,
       offerDesc: deal.offerDesc ?? deal.description,
       offerDelivery: deal.offerDelivery ?? deal.subtitle,
@@ -266,13 +275,14 @@ export class MenuCatalogService {
   }
 
   async getHotCombos() {
-    const combos = await this.prisma.hotBurgerCombo.findMany({
+    const combos = await this.prisma.hotCombo.findMany({
       ...activeOrder,
       select: {
         categoryLabel: true,
         categoryLabelData: true,
         descriptionData: true,
         foodItemId: true,
+        foodItem: { select: foodSelect },
         id: true,
         imageUrl: true,
         isFeatured: true,
@@ -288,6 +298,7 @@ export class MenuCatalogService {
 
     return combos.map((combo) => ({
       ...combo,
+      foodItem: combo.foodItem ? this.mapFoodItem(combo.foodItem) : null,
       categoryLabel: combo.categoryLabelData ?? combo.categoryLabel,
       description: combo.descriptionData ?? combo.subtitle,
       image: combo.imageUrl,
@@ -404,7 +415,7 @@ export class MenuCatalogService {
     const foodItems = await this.prisma.foodItem.findMany({
       orderBy: [{ sortOrder: "asc" }, { slug: "asc" }],
       select: foodSelect,
-      where: { isActive: true },
+      where: catalogFoodWhere,
     });
 
     return foodItems.map(this.mapFoodItem);

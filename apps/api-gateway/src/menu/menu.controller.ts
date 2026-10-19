@@ -25,6 +25,7 @@ import {
   FoodListQueryDto,
   FoodListResponseDto,
   HeroSlideResponseDto,
+  HotComboResponseDto,
   MenuBootstrapResponseDto,
   ModifierGroupResponseDto,
 } from "@app/dto";
@@ -95,8 +96,8 @@ export class MenuController {
 
   @Get("hot-combos")
   @Header("Cache-Control", "public, max-age=120")
-  @ApiOperation({ summary: "List active hot burger combos" })
-  @ApiResponse({ status: 200, schema: { type: "array" } })
+  @ApiOperation({ summary: "List active hot combos with linked food details" })
+  @ApiResponse({ status: 200, type: [HotComboResponseDto] })
   getHotCombos() {
     return this.send(MENU_PATTERNS.GET_HOT_COMBOS, {});
   }

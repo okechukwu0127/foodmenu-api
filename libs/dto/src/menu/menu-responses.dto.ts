@@ -123,6 +123,18 @@ export class FoodDetailsResponseDto {
   @ApiProperty({ type: [FoodImageResponseDto] })
   images!: FoodImageResponseDto[];
 
+  @ApiProperty({
+    type: [Object],
+    description: "Available delivery and pickup options",
+  })
+  fulfillmentOptions!: Record<string, unknown>[];
+
+  @ApiProperty({
+    type: [String],
+    example: ["mod_burger_size", "mod_burger_extras"],
+  })
+  modifierGroupIds!: string[];
+
   @ApiProperty({ type: [ModifierGroupResponseDto] })
   modifierGroups!: ModifierGroupResponseDto[];
 }
@@ -136,6 +148,12 @@ export class FoodListResponseDto {
 }
 
 export class DealResponseDto {
+  @ApiPropertyOptional({ nullable: true })
+  foodItemId?: string | null;
+
+  @ApiPropertyOptional({ type: FoodDetailsResponseDto, nullable: true })
+  foodItem?: FoodDetailsResponseDto | null;
+
   @ApiProperty({ example: "weekend-burger-deal" })
   id!: string;
 
@@ -158,6 +176,32 @@ export class DealResponseDto {
   backgroundColor?: string | null;
 
   @ApiProperty({ example: 1 })
+  sortOrder!: number;
+}
+
+export class HotComboResponseDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  title!: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  foodItemId?: string | null;
+
+  @ApiPropertyOptional({ type: FoodDetailsResponseDto, nullable: true })
+  foodItem?: FoodDetailsResponseDto | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 19.99 })
+  price?: number | null;
+
+  @ApiPropertyOptional()
+  imageUrl?: string | null;
+
+  @ApiProperty()
+  isFeatured!: boolean;
+
+  @ApiProperty()
   sortOrder!: number;
 }
 
@@ -211,8 +255,8 @@ export class MenuBootstrapResponseDto {
   @ApiProperty({ type: [DealResponseDto] })
   deals!: DealResponseDto[];
 
-  @ApiProperty({ isArray: true })
-  hotBurgerCombos!: unknown[];
+  @ApiProperty({ type: [HotComboResponseDto] })
+  hotCombos!: HotComboResponseDto[];
 
   @ApiProperty({ type: [DrinkAddOnResponseDto] })
   drinkAddOns!: DrinkAddOnResponseDto[];

@@ -106,7 +106,8 @@
       ],
       "image": "/assets/deals/deal6.webp",
       "backgroundColor": "#D94A1E",
-      "accentColor": "#FFF0B8"
+      "accentColor": "#FFF0B8",
+      "foodItemId": "food-deal-001"
     },
     {
       "id": "deal-002",
@@ -134,7 +135,8 @@
       ],
       "image": "/assets/deals/deal2.webp",
       "backgroundColor": "#263FB7",
-      "accentColor": "#FFE27A"
+      "accentColor": "#FFE27A",
+      "foodItemId": "food-deal-002"
     },
     {
       "id": "deal-003",
@@ -162,7 +164,8 @@
       ],
       "image": "/assets/deals/deal3.webp",
       "backgroundColor": "#008A7C",
-      "accentColor": "#D7FFF7"
+      "accentColor": "#D7FFF7",
+      "foodItemId": "food-deal-003"
     },
     {
       "id": "deal-004",
@@ -190,7 +193,8 @@
       ],
       "image": "/assets/deals/deal4.webp",
       "backgroundColor": "#C92D6D",
-      "accentColor": "#FFE0EC"
+      "accentColor": "#FFE0EC",
+      "foodItemId": "food-deal-004"
     },
     {
       "id": "deal-005",
@@ -219,7 +223,8 @@
       ],
       "image": "/assets/deals/deal5.avif",
       "backgroundColor": "#5B21B6",
-      "accentColor": "#F3E8FF"
+      "accentColor": "#F3E8FF",
+      "foodItemId": "food-deal-005"
     },
     {
       "id": "deal-006",
@@ -248,10 +253,11 @@
       ],
       "image": "/assets/deals/dela1.webp",
       "backgroundColor": "#131313",
-      "accentColor": "#F3E8FF"
+      "accentColor": "#F3E8FF",
+      "foodItemId": "food-deal-006"
     }
   ],
-  "hotBurgerCombos": [
+  "hotCombos": [
     {
       "id": "combo-001",
       "name": {
@@ -294,7 +300,8 @@
         "ar": "وجبة برغر"
       },
       "image": "/assets/deals/dela1.webp",
-      "isFeatured": true
+      "isFeatured": true,
+      "foodItemId": "food-combo-001"
     },
     {
       "id": "combo-002",
@@ -349,7 +356,8 @@
         "es": "Combo de hamburguesa",
         "ar": "وجبة برغر"
       },
-      "image": "/assets/deals/deal2.webp"
+      "image": "/assets/deals/deal2.webp",
+      "foodItemId": "food-combo-002"
     },
     {
       "id": "combo-003",
@@ -392,7 +400,8 @@
         "es": "Combo de hamburguesa",
         "ar": "وجبة برغر"
       },
-      "image": "/assets/deals/deal4.webp"
+      "image": "/assets/deals/deal4.webp",
+      "foodItemId": "food-combo-003"
     },
     {
       "id": "combo-004",
@@ -447,7 +456,8 @@
         "es": "Combo de hamburguesa",
         "ar": "وجبة برغر"
       },
-      "image": "/assets/deals/deal3.webp"
+      "image": "/assets/deals/deal3.webp",
+      "foodItemId": "food-combo-004"
     },
     {
       "id": "combo-005",
@@ -502,7 +512,8 @@
         "es": "Combo de hamburguesa",
         "ar": "وجبة برغر"
       },
-      "image": "/assets/deals/deal5.avif"
+      "image": "/assets/deals/deal5.avif",
+      "foodItemId": "food-combo-005"
     }
   ],
   "sideOptionsPool": [
@@ -4175,6 +4186,1807 @@
         "mod_add_sides",
         "mod_add_drinks"
       ]
+    },
+    {
+      "id": "food-combo-001",
+      "categoryId": "burgers",
+      "name": {
+        "en": "Combo Spicy Tender",
+        "fr": "Menu tendre épicé",
+        "es": "Combo tierno picante",
+        "ar": "وجبة طرية وحارة"
+      },
+      "description": {
+        "en": "A balanced combination pairing rich land-based beef with light, refreshing seafood",
+        "fr": "Une combinaison équilibrée de bœuf riche et de fruits de mer légers et rafraîchissants.",
+        "es": "Una combinación equilibrada de carne de res y mariscos ligeros y refrescantes.",
+        "ar": "تشكيلة متوازنة تجمع لحم البقر الغني مع مأكولات بحرية خفيفة ومنعشة."
+      },
+      "price": 10.15,
+      "image": [
+        "/assets/deals/dela1.webp"
+      ],
+      "fulfillmentOptions": [
+        {
+          "mode": "delivery",
+          "label": "Delivery",
+          "timeLabel": "Arrival",
+          "timeValue": "25-35 min",
+          "locationLabel": "Deliver to",
+          "locationValue": "23 King Street, Lekki Phase 1",
+          "feeLabel": "Delivery fee",
+          "feeValue": "£1.99"
+        },
+        {
+          "mode": "pickup",
+          "label": "Pickup",
+          "timeLabel": "Prep time",
+          "timeValue": "12-17 min",
+          "locationLabel": "Store",
+          "locationValue": "0.4 mi away - 789 Park Avenue",
+          "feeLabel": "Pickup",
+          "feeValue": "Free"
+        }
+      ],
+      "sizeOptions": [],
+      "sideOptions": [],
+      "appetizerOptions": [],
+      "modifierGroupIds": [
+        "mod_burger_size",
+        "mod_burger_extras",
+        "mod_choose_fries",
+        "mod_choose_drink",
+        "mod_add_sides",
+        "mod_add_drinks"
+      ],
+      "tags": [
+        "combo"
+      ],
+      "isFoodAvailable": true
+    },
+    {
+      "id": "food-combo-002",
+      "categoryId": "burgers",
+      "name": {
+        "en": "Combo Tender Grill Deluxe",
+        "fr": "Menu grill tendre deluxe",
+        "es": "Combo grill tierno deluxe",
+        "ar": "وجبة مشويات طرية فاخرة"
+      },
+      "description": {
+        "en": "Easy-to-eat, shareable bites packed with a kick of spice and crunch",
+        "fr": "Des bouchées faciles à partager, relevées d'épices et de croquant.",
+        "es": "Bocados fáciles de compartir, llenos de sabor, especias y textura crujiente.",
+        "ar": "لقيمات سهلة المشاركة، مليئة بالتوابل والقرمشة."
+      },
+      "price": 10.15,
+      "image": [
+        "/assets/deals/deal2.webp"
+      ],
+      "fulfillmentOptions": [
+        {
+          "mode": "delivery",
+          "label": "Delivery",
+          "timeLabel": "Arrival",
+          "timeValue": "25-35 min",
+          "locationLabel": "Deliver to",
+          "locationValue": "23 King Street, Lekki Phase 1",
+          "feeLabel": "Delivery fee",
+          "feeValue": "£1.99"
+        },
+        {
+          "mode": "pickup",
+          "label": "Pickup",
+          "timeLabel": "Prep time",
+          "timeValue": "12-17 min",
+          "locationLabel": "Store",
+          "locationValue": "0.4 mi away - 789 Park Avenue",
+          "feeLabel": "Pickup",
+          "feeValue": "Free"
+        }
+      ],
+      "sizeOptions": [],
+      "sideOptions": [],
+      "appetizerOptions": [],
+      "modifierGroupIds": [
+        "mod_burger_size",
+        "mod_burger_extras",
+        "mod_choose_fries",
+        "mod_choose_drink",
+        "mod_add_sides",
+        "mod_add_drinks"
+      ],
+      "tags": [
+        "combo"
+      ],
+      "isFoodAvailable": true
+    },
+    {
+      "id": "food-combo-003",
+      "categoryId": "burgers",
+      "name": {
+        "en": "Combo BBQ Bacon Double",
+        "fr": "Menu double bacon BBQ",
+        "es": "Combo doble tocino BBQ",
+        "ar": "وجبة بيكون باربكيو مزدوجة"
+      },
+      "description": {
+        "en": "BBQ bacon burger combo - The ultimate feast built entirely around premium, high-protein beef and rich meats.",
+        "fr": "Menu burger au bacon BBQ, un festin généreux de bœuf de qualité et de viandes savoureuses.",
+        "es": "Combo de hamburguesa con tocino BBQ: un festín de carne de res premium y carnes sabrosas.",
+        "ar": "وجبة برغر ببيكون باربكيو، وليمة غنية بلحم بقر فاخر ولحوم شهية."
+      },
+      "price": 10.15,
+      "image": [
+        "/assets/deals/deal4.webp"
+      ],
+      "fulfillmentOptions": [
+        {
+          "mode": "delivery",
+          "label": "Delivery",
+          "timeLabel": "Arrival",
+          "timeValue": "25-35 min",
+          "locationLabel": "Deliver to",
+          "locationValue": "23 King Street, Lekki Phase 1",
+          "feeLabel": "Delivery fee",
+          "feeValue": "£1.99"
+        },
+        {
+          "mode": "pickup",
+          "label": "Pickup",
+          "timeLabel": "Prep time",
+          "timeValue": "12-17 min",
+          "locationLabel": "Store",
+          "locationValue": "0.4 mi away - 789 Park Avenue",
+          "feeLabel": "Pickup",
+          "feeValue": "Free"
+        }
+      ],
+      "sizeOptions": [],
+      "sideOptions": [],
+      "appetizerOptions": [],
+      "modifierGroupIds": [
+        "mod_burger_size",
+        "mod_burger_extras",
+        "mod_choose_fries",
+        "mod_choose_drink",
+        "mod_add_sides",
+        "mod_add_drinks"
+      ],
+      "tags": [
+        "combo"
+      ],
+      "isFoodAvailable": true
+    },
+    {
+      "id": "food-combo-004",
+      "categoryId": "burgers",
+      "name": {
+        "en": "Combo Tender Grill Deluxe",
+        "fr": "Menu grill tendre deluxe",
+        "es": "Combo grill tierno deluxe",
+        "ar": "وجبة مشويات طرية فاخرة"
+      },
+      "description": {
+        "en": "Easy-to-eat, shareable bites packed with a kick of spice and crunch",
+        "fr": "Des bouchées faciles à partager, relevées d'épices et de croquant.",
+        "es": "Bocados fáciles de compartir, llenos de sabor, especias y textura crujiente.",
+        "ar": "لقيمات سهلة المشاركة، مليئة بالتوابل والقرمشة."
+      },
+      "price": 10.15,
+      "image": [
+        "/assets/deals/deal3.webp"
+      ],
+      "fulfillmentOptions": [
+        {
+          "mode": "delivery",
+          "label": "Delivery",
+          "timeLabel": "Arrival",
+          "timeValue": "25-35 min",
+          "locationLabel": "Deliver to",
+          "locationValue": "23 King Street, Lekki Phase 1",
+          "feeLabel": "Delivery fee",
+          "feeValue": "£1.99"
+        },
+        {
+          "mode": "pickup",
+          "label": "Pickup",
+          "timeLabel": "Prep time",
+          "timeValue": "12-17 min",
+          "locationLabel": "Store",
+          "locationValue": "0.4 mi away - 789 Park Avenue",
+          "feeLabel": "Pickup",
+          "feeValue": "Free"
+        }
+      ],
+      "sizeOptions": [],
+      "sideOptions": [],
+      "appetizerOptions": [],
+      "modifierGroupIds": [
+        "mod_burger_size",
+        "mod_burger_extras",
+        "mod_choose_fries",
+        "mod_choose_drink",
+        "mod_add_sides",
+        "mod_add_drinks"
+      ],
+      "tags": [
+        "combo"
+      ],
+      "isFoodAvailable": true
+    },
+    {
+      "id": "food-combo-005",
+      "categoryId": "burgers",
+      "name": {
+        "en": "Combo Tender Grill Deluxe",
+        "fr": "Menu grill tendre deluxe",
+        "es": "Combo grill tierno deluxe",
+        "ar": "وجبة مشويات طرية فاخرة"
+      },
+      "description": {
+        "en": "Easy-to-eat, shareable bites packed with a kick of spice and crunch",
+        "fr": "Des bouchées faciles à partager, relevées d'épices et de croquant.",
+        "es": "Bocados fáciles de compartir, llenos de sabor, especias y textura crujiente.",
+        "ar": "لقيمات سهلة المشاركة، مليئة بالتوابل والقرمشة."
+      },
+      "price": 10.15,
+      "image": [
+        "/assets/deals/deal5.avif"
+      ],
+      "fulfillmentOptions": [
+        {
+          "mode": "delivery",
+          "label": "Delivery",
+          "timeLabel": "Arrival",
+          "timeValue": "25-35 min",
+          "locationLabel": "Deliver to",
+          "locationValue": "23 King Street, Lekki Phase 1",
+          "feeLabel": "Delivery fee",
+          "feeValue": "£1.99"
+        },
+        {
+          "mode": "pickup",
+          "label": "Pickup",
+          "timeLabel": "Prep time",
+          "timeValue": "12-17 min",
+          "locationLabel": "Store",
+          "locationValue": "0.4 mi away - 789 Park Avenue",
+          "feeLabel": "Pickup",
+          "feeValue": "Free"
+        }
+      ],
+      "sizeOptions": [],
+      "sideOptions": [],
+      "appetizerOptions": [],
+      "modifierGroupIds": [
+        "mod_burger_size",
+        "mod_burger_extras",
+        "mod_choose_fries",
+        "mod_choose_drink",
+        "mod_add_sides",
+        "mod_add_drinks"
+      ],
+      "tags": [
+        "combo"
+      ],
+      "isFoodAvailable": true
+    },
+    {
+      "id": "food-deal-001",
+      "categoryId": "burgers",
+      "name": {
+        "en": "Smoky BBQ Burger Deal",
+        "fr": "Burger BBQ Fumé Offre",
+        "es": "Hamburguesa BBQ Ahumada Oferta",
+        "ar": "برغر باربكيو مدخن عرض"
+      },
+      "description": {
+        "en": "Juicy beef patty with smoky BBQ sauce, cheddar and crispy onions.",
+        "fr": "Steak de bœuf juteux avec sauce BBQ fumée, cheddar et oignons croustillants.",
+        "es": "Jugosa hamburguesa de res con salsa BBQ ahumada, cheddar y cebolla crujiente.",
+        "ar": "قطعة لحم بقري طرية مع صلصة باربكيو مدخنة وجبن شيدر وبصل مقرمش."
+      },
+      "price": 12.99,
+      "image": [
+        "/assets/deals/deal6.webp"
+      ],
+      "rating": 4.8,
+      "prepTimeMinutes": 15,
+      "calories": 720,
+      "tags": [
+        "beef",
+        "spicy",
+        "deal"
+      ],
+      "isPopular": false,
+      "fulfillmentOptions": [
+        {
+          "mode": "delivery",
+          "label": "Delivery",
+          "timeLabel": "Arrival",
+          "timeValue": "25-35 min",
+          "locationLabel": "Deliver to",
+          "locationValue": "23 King Street, Lekki Phase 1",
+          "feeLabel": "Delivery fee",
+          "feeValue": "£1.99"
+        },
+        {
+          "mode": "pickup",
+          "label": "Pickup",
+          "timeLabel": "Prep time",
+          "timeValue": "12-17 min",
+          "locationLabel": "Store",
+          "locationValue": "0.4 mi away - 789 Park Avenue",
+          "feeLabel": "Pickup",
+          "feeValue": "Free"
+        }
+      ],
+      "sizeOptions": [
+        {
+          "id": "small",
+          "label": "Small",
+          "measurementLabel": "single serve",
+          "priceOffset": 0
+        },
+        {
+          "id": "regular",
+          "label": "Regular",
+          "measurementLabel": "standard",
+          "priceOffset": 2
+        },
+        {
+          "id": "large",
+          "label": "Large",
+          "measurementLabel": "double serve",
+          "priceOffset": 4
+        },
+        {
+          "id": "family",
+          "label": "Family",
+          "measurementLabel": "share box",
+          "priceOffset": 6
+        }
+      ],
+      "sideOptions": [
+        {
+          "id": "onion-rings",
+          "name": {
+            "en": "Crispy Onion Rings",
+            "fr": "Rondelles d'oignon croustillantes",
+            "es": "Aros de cebolla crujientes",
+            "ar": "حلقات بصل مقرمشة"
+          },
+          "description": {
+            "en": "Golden fried rings with a light seasoned crunch.",
+            "fr": "Rondelles dorées frites avec un assaisonnement léger et croustillant.",
+            "es": "Aros dorados fritos con un ligero toque crujiente y sazonado.",
+            "ar": "حلقات ذهبية مقلية بقرمشة وتتبيلة خفيفة."
+          },
+          "price": 2.25,
+          "image": "https://images.unsplash.com/photo-1639024471283-03518883512d?w=600",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "coleslaw",
+          "name": {
+            "en": "Creamy Garden Coleslaw",
+            "fr": "Salade de chou crémeuse du jardin",
+            "es": "Ensalada de col cremosa de la huerta",
+            "ar": "سلطة ملفوف كريمية طازجة"
+          },
+          "description": {
+            "en": "Fresh shredded cabbage tossed in creamy dressing.",
+            "fr": "Chou frais émincé mélangé à une sauce crémeuse.",
+            "es": "Col fresca rallada mezclada con un aderezo cremoso.",
+            "ar": "ملفوف طازج مبشور ممزوج بتتبيلة كريمية."
+          },
+          "price": 2.5,
+          "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "fries",
+          "name": {
+            "en": "Salted Golden Fries",
+            "fr": "Frites dorées salées",
+            "es": "Patatas doradas saladas",
+            "ar": "بطاطس ذهبية مملحة"
+          },
+          "description": {
+            "en": "Crisp potato fries finished with house seasoning.",
+            "fr": "Frites de pommes de terre croustillantes avec l'assaisonnement maison.",
+            "es": "Patatas crujientes terminadas con el sazonado de la casa.",
+            "ar": "بطاطس مقرمشة مع توابل المطعم الخاصة."
+          },
+          "price": 3.25,
+          "image": "https://images.unsplash.com/photo-1576107232684-1279f390859f?w=600",
+          "tag": "Popular",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "mash-potato",
+          "name": {
+            "en": "Creamy Mash Potato",
+            "fr": "Purée de pommes de terre crémeuse",
+            "es": "Puré de patata cremoso",
+            "ar": "بطاطس مهروسة كريمية"
+          },
+          "description": {
+            "en": "Buttery mashed potato finished with a drizzle of gravy.",
+            "fr": "Purée de pommes de terre au beurre avec un filet de sauce.",
+            "es": "Puré de patata con mantequilla y un toque de salsa.",
+            "ar": "بطاطس مهروسة بالزبدة مع القليل من الصلصة."
+          },
+          "price": 5.49,
+          "image": "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=600",
+          "tag": "Contains Milk",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "salad",
+          "name": {
+            "en": "Fresh Market Salad",
+            "fr": "Salade fraîche du marché",
+            "es": "Ensalada fresca del mercado",
+            "ar": "سلطة السوق الطازجة"
+          },
+          "description": {
+            "en": "Leafy greens, tomatoes, cucumber and light herbs.",
+            "fr": "Feuilles vertes, tomates, concombre et herbes légères.",
+            "es": "Hojas verdes, tomates, pepino y hierbas suaves.",
+            "ar": "خضروات ورقية وطماطم وخيار وأعشاب خفيفة."
+          },
+          "price": 3,
+          "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600",
+          "unitLabel": "Side"
+        }
+      ],
+      "appetizerOptions": [
+        {
+          "id": "garlic-bread",
+          "name": {
+            "en": "Cheese Ciabatta Garlic Bread",
+            "fr": "Pain ciabatta à l'ail et au fromage",
+            "es": "Pan ciabatta de ajo con queso",
+            "ar": "خبز تشاباتا بالثوم والجبن"
+          },
+          "description": {
+            "en": "Toasted ciabatta loaded with garlic butter and cheese.",
+            "fr": "Ciabatta grillée garnie de beurre à l'ail et de fromage.",
+            "es": "Ciabatta tostada con mantequilla de ajo y queso.",
+            "ar": "خبز تشاباتا محمص مع زبدة الثوم والجبن."
+          },
+          "price": 4.5,
+          "image": "https://images.unsplash.com/photo-1573140401552-3fab0b24427f?w=600",
+          "tag": "Popular",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "halloumi-fries",
+          "name": {
+            "en": "Halloumi Fries",
+            "fr": "Frites de halloumi",
+            "es": "Tiras de halloumi fritas",
+            "ar": "أصابع حلوم مقلية"
+          },
+          "description": {
+            "en": "Golden fried halloumi strips, crisp on the outside.",
+            "fr": "Bâtonnets de halloumi dorés et croustillants à l'extérieur.",
+            "es": "Tiras de halloumi doradas y crujientes por fuera.",
+            "ar": "أصابع حلوم ذهبية ومقرمشة من الخارج."
+          },
+          "price": 5.5,
+          "image": "https://images.unsplash.com/photo-1631898039984-fb91fdc73946?w=600",
+          "tag": "Popular",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "mozzarella-sticks",
+          "name": {
+            "en": "Mozzarella Sticks",
+            "fr": "Bâtonnets de mozzarella",
+            "es": "Palitos de mozzarella",
+            "ar": "أصابع موزاريلا"
+          },
+          "description": {
+            "en": "Breaded mozzarella, fried until golden and gooey.",
+            "fr": "Mozzarella panée, frite jusqu'à être dorée et fondante.",
+            "es": "Mozzarella empanada, frita hasta quedar dorada y fundente.",
+            "ar": "موزاريلا مغطاة بالبقسماط ومقلية حتى تصبح ذهبية وطرية."
+          },
+          "price": 4.99,
+          "image": "https://images.unsplash.com/photo-1531749668029-2db88e4276c7?w=600",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "chicken-wings",
+          "name": {
+            "en": "Spicy Chicken Wings",
+            "fr": "Ailes de poulet épicées",
+            "es": "Alitas de pollo picantes",
+            "ar": "أجنحة دجاج حارة"
+          },
+          "description": {
+            "en": "Oven-baked wings tossed in a smoky hot sauce.",
+            "fr": "Ailes cuites au four enrobées d'une sauce fumée et relevée.",
+            "es": "Alitas horneadas mezcladas con una salsa ahumada y picante.",
+            "ar": "أجنحة مخبوزة بالفرن مع صلصة مدخنة وحارة."
+          },
+          "price": 6.25,
+          "image": "https://images.unsplash.com/photo-1608039755401-742074f0548d?w=600",
+          "unitLabel": "Appetizer"
+        }
+      ],
+      "modifierGroupIds": [
+        "mod_burger_size",
+        "mod_burger_extras",
+        "mod_choose_fries",
+        "mod_choose_drink",
+        "mod_add_sides",
+        "mod_add_drinks"
+      ],
+      "isRecommended": false
+    },
+    {
+      "id": "food-deal-002",
+      "categoryId": "pizza",
+      "name": {
+        "en": "Margherita Pizza Deal",
+        "fr": "Pizza Margherita Offre",
+        "es": "Pizza Margarita Oferta",
+        "ar": "بيتزا مارغريتا عرض"
+      },
+      "description": {
+        "en": "Fresh mozzarella, basil and tomato sauce on a crispy thin crust.",
+        "fr": "Mozzarella fraîche, basilic et sauce tomate sur une pâte fine et croustillante.",
+        "es": "Mozzarella fresca, albahaca y salsa de tomate sobre una masa fina y crujiente.",
+        "ar": "موزاريلا طازجة وريحان وصلصة طماطم على عجينة رقيقة ومقرمشة."
+      },
+      "price": 14,
+      "image": [
+        "/assets/deals/deal2.webp"
+      ],
+      "rating": 4.9,
+      "prepTimeMinutes": 20,
+      "calories": 800,
+      "tags": [
+        "vegetarian",
+        "deal"
+      ],
+      "isPopular": false,
+      "fulfillmentOptions": [
+        {
+          "mode": "delivery",
+          "label": "Delivery",
+          "timeLabel": "Arrival",
+          "timeValue": "30-40 min",
+          "locationLabel": "Deliver to",
+          "locationValue": "23 King Street, Lekki Phase 1",
+          "feeLabel": "Delivery fee",
+          "feeValue": "£1.99"
+        },
+        {
+          "mode": "pickup",
+          "label": "Pickup",
+          "timeLabel": "Prep time",
+          "timeValue": "17-22 min",
+          "locationLabel": "Store",
+          "locationValue": "0.4 mi away - 789 Park Avenue",
+          "feeLabel": "Pickup",
+          "feeValue": "Free"
+        }
+      ],
+      "sizeOptions": [
+        {
+          "id": "small",
+          "label": "Small",
+          "measurementLabel": "8 inches",
+          "priceOffset": 0
+        },
+        {
+          "id": "regular",
+          "label": "Regular",
+          "measurementLabel": "10 inches",
+          "priceOffset": 2
+        },
+        {
+          "id": "large",
+          "label": "Large",
+          "measurementLabel": "12 inches",
+          "priceOffset": 4
+        },
+        {
+          "id": "extra-large",
+          "label": "XL",
+          "measurementLabel": "14 inches",
+          "priceOffset": 6
+        }
+      ],
+      "sideOptions": [
+        {
+          "id": "onion-rings",
+          "name": {
+            "en": "Crispy Onion Rings",
+            "fr": "Rondelles d'oignon croustillantes",
+            "es": "Aros de cebolla crujientes",
+            "ar": "حلقات بصل مقرمشة"
+          },
+          "description": {
+            "en": "Golden fried rings with a light seasoned crunch.",
+            "fr": "Rondelles dorées frites avec un assaisonnement léger et croustillant.",
+            "es": "Aros dorados fritos con un ligero toque crujiente y sazonado.",
+            "ar": "حلقات ذهبية مقلية بقرمشة وتتبيلة خفيفة."
+          },
+          "price": 2.25,
+          "image": "https://images.unsplash.com/photo-1639024471283-03518883512d?w=600",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "coleslaw",
+          "name": {
+            "en": "Creamy Garden Coleslaw",
+            "fr": "Salade de chou crémeuse du jardin",
+            "es": "Ensalada de col cremosa de la huerta",
+            "ar": "سلطة ملفوف كريمية طازجة"
+          },
+          "description": {
+            "en": "Fresh shredded cabbage tossed in creamy dressing.",
+            "fr": "Chou frais émincé mélangé à une sauce crémeuse.",
+            "es": "Col fresca rallada mezclada con un aderezo cremoso.",
+            "ar": "ملفوف طازج مبشور ممزوج بتتبيلة كريمية."
+          },
+          "price": 2.5,
+          "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "fries",
+          "name": {
+            "en": "Salted Golden Fries",
+            "fr": "Frites dorées salées",
+            "es": "Patatas doradas saladas",
+            "ar": "بطاطس ذهبية مملحة"
+          },
+          "description": {
+            "en": "Crisp potato fries finished with house seasoning.",
+            "fr": "Frites de pommes de terre croustillantes avec l'assaisonnement maison.",
+            "es": "Patatas crujientes terminadas con el sazonado de la casa.",
+            "ar": "بطاطس مقرمشة مع توابل المطعم الخاصة."
+          },
+          "price": 3.25,
+          "image": "https://images.unsplash.com/photo-1576107232684-1279f390859f?w=600",
+          "tag": "Popular",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "mash-potato",
+          "name": {
+            "en": "Creamy Mash Potato",
+            "fr": "Purée de pommes de terre crémeuse",
+            "es": "Puré de patata cremoso",
+            "ar": "بطاطس مهروسة كريمية"
+          },
+          "description": {
+            "en": "Buttery mashed potato finished with a drizzle of gravy.",
+            "fr": "Purée de pommes de terre au beurre avec un filet de sauce.",
+            "es": "Puré de patata con mantequilla y un toque de salsa.",
+            "ar": "بطاطس مهروسة بالزبدة مع القليل من الصلصة."
+          },
+          "price": 5.49,
+          "image": "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=600",
+          "tag": "Contains Milk",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "salad",
+          "name": {
+            "en": "Fresh Market Salad",
+            "fr": "Salade fraîche du marché",
+            "es": "Ensalada fresca del mercado",
+            "ar": "سلطة السوق الطازجة"
+          },
+          "description": {
+            "en": "Leafy greens, tomatoes, cucumber and light herbs.",
+            "fr": "Feuilles vertes, tomates, concombre et herbes légères.",
+            "es": "Hojas verdes, tomates, pepino y hierbas suaves.",
+            "ar": "خضروات ورقية وطماطم وخيار وأعشاب خفيفة."
+          },
+          "price": 3,
+          "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600",
+          "unitLabel": "Side"
+        }
+      ],
+      "appetizerOptions": [
+        {
+          "id": "garlic-bread",
+          "name": {
+            "en": "Cheese Ciabatta Garlic Bread",
+            "fr": "Pain ciabatta à l'ail et au fromage",
+            "es": "Pan ciabatta de ajo con queso",
+            "ar": "خبز تشاباتا بالثوم والجبن"
+          },
+          "description": {
+            "en": "Toasted ciabatta loaded with garlic butter and cheese.",
+            "fr": "Ciabatta grillée garnie de beurre à l'ail et de fromage.",
+            "es": "Ciabatta tostada con mantequilla de ajo y queso.",
+            "ar": "خبز تشاباتا محمص مع زبدة الثوم والجبن."
+          },
+          "price": 4.5,
+          "image": "https://images.unsplash.com/photo-1573140401552-3fab0b24427f?w=600",
+          "tag": "Popular",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "halloumi-fries",
+          "name": {
+            "en": "Halloumi Fries",
+            "fr": "Frites de halloumi",
+            "es": "Tiras de halloumi fritas",
+            "ar": "أصابع حلوم مقلية"
+          },
+          "description": {
+            "en": "Golden fried halloumi strips, crisp on the outside.",
+            "fr": "Bâtonnets de halloumi dorés et croustillants à l'extérieur.",
+            "es": "Tiras de halloumi doradas y crujientes por fuera.",
+            "ar": "أصابع حلوم ذهبية ومقرمشة من الخارج."
+          },
+          "price": 5.5,
+          "image": "https://images.unsplash.com/photo-1631898039984-fb91fdc73946?w=600",
+          "tag": "Popular",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "mozzarella-sticks",
+          "name": {
+            "en": "Mozzarella Sticks",
+            "fr": "Bâtonnets de mozzarella",
+            "es": "Palitos de mozzarella",
+            "ar": "أصابع موزاريلا"
+          },
+          "description": {
+            "en": "Breaded mozzarella, fried until golden and gooey.",
+            "fr": "Mozzarella panée, frite jusqu'à être dorée et fondante.",
+            "es": "Mozzarella empanada, frita hasta quedar dorada y fundente.",
+            "ar": "موزاريلا مغطاة بالبقسماط ومقلية حتى تصبح ذهبية وطرية."
+          },
+          "price": 4.99,
+          "image": "https://images.unsplash.com/photo-1531749668029-2db88e4276c7?w=600",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "chicken-wings",
+          "name": {
+            "en": "Spicy Chicken Wings",
+            "fr": "Ailes de poulet épicées",
+            "es": "Alitas de pollo picantes",
+            "ar": "أجنحة دجاج حارة"
+          },
+          "description": {
+            "en": "Oven-baked wings tossed in a smoky hot sauce.",
+            "fr": "Ailes cuites au four enrobées d'une sauce fumée et relevée.",
+            "es": "Alitas horneadas mezcladas con una salsa ahumada y picante.",
+            "ar": "أجنحة مخبوزة بالفرن مع صلصة مدخنة وحارة."
+          },
+          "price": 6.25,
+          "image": "https://images.unsplash.com/photo-1608039755401-742074f0548d?w=600",
+          "unitLabel": "Appetizer"
+        }
+      ],
+      "modifierGroupIds": [
+        "mod_pizza_size",
+        "mod_pizza_crust",
+        "mod_pizza_toppings",
+        "mod_add_drinks"
+      ],
+      "isRecommended": false
+    },
+    {
+      "id": "food-deal-003",
+      "categoryId": "drinks",
+      "name": {
+        "en": "Iced Berry Lemonade Deal",
+        "fr": "Limonade Glacée aux Baies Offre",
+        "es": "Limonada Helada de Bayas Oferta",
+        "ar": "ليمونادة بالتوت المثلج عرض"
+      },
+      "description": {
+        "en": "Refreshing lemonade infused with mixed berries and mint.",
+        "fr": "Limonade rafraîchissante infusée de baies et de menthe.",
+        "es": "Limonada refrescante con bayas mixtas y menta.",
+        "ar": "ليمونادة منعشة بنكهة التوت المشكل والنعناع."
+      },
+      "price": 5.5,
+      "image": [
+        "/assets/deals/deal3.webp"
+      ],
+      "rating": 4.4,
+      "prepTimeMinutes": 5,
+      "calories": 180,
+      "tags": [
+        "cold",
+        "refreshing",
+        "deal"
+      ],
+      "fulfillmentOptions": [
+        {
+          "mode": "delivery",
+          "label": "Delivery",
+          "timeLabel": "Arrival",
+          "timeValue": "15-25 min",
+          "locationLabel": "Deliver to",
+          "locationValue": "23 King Street, Lekki Phase 1",
+          "feeLabel": "Delivery fee",
+          "feeValue": "£1.99"
+        },
+        {
+          "mode": "pickup",
+          "label": "Pickup",
+          "timeLabel": "Prep time",
+          "timeValue": "5-7 min",
+          "locationLabel": "Store",
+          "locationValue": "0.4 mi away - 789 Park Avenue",
+          "feeLabel": "Pickup",
+          "feeValue": "Free"
+        }
+      ],
+      "sizeOptions": [
+        {
+          "id": "regular",
+          "label": "Regular",
+          "measurementLabel": "12 oz",
+          "priceOffset": 0
+        },
+        {
+          "id": "large",
+          "label": "Large",
+          "measurementLabel": "16 oz",
+          "priceOffset": 1.25
+        },
+        {
+          "id": "extra-large",
+          "label": "XL",
+          "measurementLabel": "20 oz",
+          "priceOffset": 2
+        }
+      ],
+      "sideOptions": [
+        {
+          "id": "onion-rings",
+          "name": {
+            "en": "Crispy Onion Rings",
+            "fr": "Rondelles d'oignon croustillantes",
+            "es": "Aros de cebolla crujientes",
+            "ar": "حلقات بصل مقرمشة"
+          },
+          "description": {
+            "en": "Golden fried rings with a light seasoned crunch.",
+            "fr": "Rondelles dorées frites avec un assaisonnement léger et croustillant.",
+            "es": "Aros dorados fritos con un ligero toque crujiente y sazonado.",
+            "ar": "حلقات ذهبية مقلية بقرمشة وتتبيلة خفيفة."
+          },
+          "price": 2.25,
+          "image": "https://images.unsplash.com/photo-1639024471283-03518883512d?w=600",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "coleslaw",
+          "name": {
+            "en": "Creamy Garden Coleslaw",
+            "fr": "Salade de chou crémeuse du jardin",
+            "es": "Ensalada de col cremosa de la huerta",
+            "ar": "سلطة ملفوف كريمية طازجة"
+          },
+          "description": {
+            "en": "Fresh shredded cabbage tossed in creamy dressing.",
+            "fr": "Chou frais émincé mélangé à une sauce crémeuse.",
+            "es": "Col fresca rallada mezclada con un aderezo cremoso.",
+            "ar": "ملفوف طازج مبشور ممزوج بتتبيلة كريمية."
+          },
+          "price": 2.5,
+          "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "fries",
+          "name": {
+            "en": "Salted Golden Fries",
+            "fr": "Frites dorées salées",
+            "es": "Patatas doradas saladas",
+            "ar": "بطاطس ذهبية مملحة"
+          },
+          "description": {
+            "en": "Crisp potato fries finished with house seasoning.",
+            "fr": "Frites de pommes de terre croustillantes avec l'assaisonnement maison.",
+            "es": "Patatas crujientes terminadas con el sazonado de la casa.",
+            "ar": "بطاطس مقرمشة مع توابل المطعم الخاصة."
+          },
+          "price": 3.25,
+          "image": "https://images.unsplash.com/photo-1576107232684-1279f390859f?w=600",
+          "tag": "Popular",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "mash-potato",
+          "name": {
+            "en": "Creamy Mash Potato",
+            "fr": "Purée de pommes de terre crémeuse",
+            "es": "Puré de patata cremoso",
+            "ar": "بطاطس مهروسة كريمية"
+          },
+          "description": {
+            "en": "Buttery mashed potato finished with a drizzle of gravy.",
+            "fr": "Purée de pommes de terre au beurre avec un filet de sauce.",
+            "es": "Puré de patata con mantequilla y un toque de salsa.",
+            "ar": "بطاطس مهروسة بالزبدة مع القليل من الصلصة."
+          },
+          "price": 5.49,
+          "image": "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=600",
+          "tag": "Contains Milk",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "salad",
+          "name": {
+            "en": "Fresh Market Salad",
+            "fr": "Salade fraîche du marché",
+            "es": "Ensalada fresca del mercado",
+            "ar": "سلطة السوق الطازجة"
+          },
+          "description": {
+            "en": "Leafy greens, tomatoes, cucumber and light herbs.",
+            "fr": "Feuilles vertes, tomates, concombre et herbes légères.",
+            "es": "Hojas verdes, tomates, pepino y hierbas suaves.",
+            "ar": "خضروات ورقية وطماطم وخيار وأعشاب خفيفة."
+          },
+          "price": 3,
+          "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600",
+          "unitLabel": "Side"
+        }
+      ],
+      "appetizerOptions": [
+        {
+          "id": "garlic-bread",
+          "name": {
+            "en": "Cheese Ciabatta Garlic Bread",
+            "fr": "Pain ciabatta à l'ail et au fromage",
+            "es": "Pan ciabatta de ajo con queso",
+            "ar": "خبز تشاباتا بالثوم والجبن"
+          },
+          "description": {
+            "en": "Toasted ciabatta loaded with garlic butter and cheese.",
+            "fr": "Ciabatta grillée garnie de beurre à l'ail et de fromage.",
+            "es": "Ciabatta tostada con mantequilla de ajo y queso.",
+            "ar": "خبز تشاباتا محمص مع زبدة الثوم والجبن."
+          },
+          "price": 4.5,
+          "image": "https://images.unsplash.com/photo-1573140401552-3fab0b24427f?w=600",
+          "tag": "Popular",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "halloumi-fries",
+          "name": {
+            "en": "Halloumi Fries",
+            "fr": "Frites de halloumi",
+            "es": "Tiras de halloumi fritas",
+            "ar": "أصابع حلوم مقلية"
+          },
+          "description": {
+            "en": "Golden fried halloumi strips, crisp on the outside.",
+            "fr": "Bâtonnets de halloumi dorés et croustillants à l'extérieur.",
+            "es": "Tiras de halloumi doradas y crujientes por fuera.",
+            "ar": "أصابع حلوم ذهبية ومقرمشة من الخارج."
+          },
+          "price": 5.5,
+          "image": "https://images.unsplash.com/photo-1631898039984-fb91fdc73946?w=600",
+          "tag": "Popular",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "mozzarella-sticks",
+          "name": {
+            "en": "Mozzarella Sticks",
+            "fr": "Bâtonnets de mozzarella",
+            "es": "Palitos de mozzarella",
+            "ar": "أصابع موزاريلا"
+          },
+          "description": {
+            "en": "Breaded mozzarella, fried until golden and gooey.",
+            "fr": "Mozzarella panée, frite jusqu'à être dorée et fondante.",
+            "es": "Mozzarella empanada, frita hasta quedar dorada y fundente.",
+            "ar": "موزاريلا مغطاة بالبقسماط ومقلية حتى تصبح ذهبية وطرية."
+          },
+          "price": 4.99,
+          "image": "https://images.unsplash.com/photo-1531749668029-2db88e4276c7?w=600",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "chicken-wings",
+          "name": {
+            "en": "Spicy Chicken Wings",
+            "fr": "Ailes de poulet épicées",
+            "es": "Alitas de pollo picantes",
+            "ar": "أجنحة دجاج حارة"
+          },
+          "description": {
+            "en": "Oven-baked wings tossed in a smoky hot sauce.",
+            "fr": "Ailes cuites au four enrobées d'une sauce fumée et relevée.",
+            "es": "Alitas horneadas mezcladas con una salsa ahumada y picante.",
+            "ar": "أجنحة مخبوزة بالفرن مع صلصة مدخنة وحارة."
+          },
+          "price": 6.25,
+          "image": "https://images.unsplash.com/photo-1608039755401-742074f0548d?w=600",
+          "unitLabel": "Appetizer"
+        }
+      ],
+      "modifierGroupIds": [
+        "mod_add_desserts"
+      ],
+      "isPopular": false,
+      "isRecommended": false
+    },
+    {
+      "id": "food-deal-004",
+      "categoryId": "burgers",
+      "name": {
+        "en": "Spicy Jalapeño Burger Deal",
+        "fr": "Burger Jalapeño Épicé Offre",
+        "es": "Hamburguesa Picante de Jalapeño Oferta",
+        "ar": "برغر هالبينو حار عرض"
+      },
+      "description": {
+        "en": "Beef patty topped with jalapeños, pepper jack and chipotle mayo.",
+        "fr": "Steak de bœuf garni de jalapeños, fromage pepper jack et mayo chipotle.",
+        "es": "Hamburguesa de res con jalapeños, queso pepper jack y mayo chipotle.",
+        "ar": "قطعة لحم بقري مع هالبينو وجبن بيبر جاك ومايونيز تشيبوتلي."
+      },
+      "price": 13.25,
+      "image": [
+        "/assets/deals/deal4.webp"
+      ],
+      "rating": 4.7,
+      "prepTimeMinutes": 15,
+      "calories": 710,
+      "tags": [
+        "beef",
+        "spicy",
+        "deal"
+      ],
+      "fulfillmentOptions": [
+        {
+          "mode": "delivery",
+          "label": "Delivery",
+          "timeLabel": "Arrival",
+          "timeValue": "25-35 min",
+          "locationLabel": "Deliver to",
+          "locationValue": "23 King Street, Lekki Phase 1",
+          "feeLabel": "Delivery fee",
+          "feeValue": "£1.99"
+        },
+        {
+          "mode": "pickup",
+          "label": "Pickup",
+          "timeLabel": "Prep time",
+          "timeValue": "12-17 min",
+          "locationLabel": "Store",
+          "locationValue": "0.4 mi away - 789 Park Avenue",
+          "feeLabel": "Pickup",
+          "feeValue": "Free"
+        }
+      ],
+      "sizeOptions": [
+        {
+          "id": "small",
+          "label": "Small",
+          "measurementLabel": "single serve",
+          "priceOffset": 0
+        },
+        {
+          "id": "regular",
+          "label": "Regular",
+          "measurementLabel": "standard",
+          "priceOffset": 2
+        },
+        {
+          "id": "large",
+          "label": "Large",
+          "measurementLabel": "double serve",
+          "priceOffset": 4
+        },
+        {
+          "id": "family",
+          "label": "Family",
+          "measurementLabel": "share box",
+          "priceOffset": 6
+        }
+      ],
+      "sideOptions": [
+        {
+          "id": "onion-rings",
+          "name": {
+            "en": "Crispy Onion Rings",
+            "fr": "Rondelles d'oignon croustillantes",
+            "es": "Aros de cebolla crujientes",
+            "ar": "حلقات بصل مقرمشة"
+          },
+          "description": {
+            "en": "Golden fried rings with a light seasoned crunch.",
+            "fr": "Rondelles dorées frites avec un assaisonnement léger et croustillant.",
+            "es": "Aros dorados fritos con un ligero toque crujiente y sazonado.",
+            "ar": "حلقات ذهبية مقلية بقرمشة وتتبيلة خفيفة."
+          },
+          "price": 2.25,
+          "image": "https://images.unsplash.com/photo-1639024471283-03518883512d?w=600",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "coleslaw",
+          "name": {
+            "en": "Creamy Garden Coleslaw",
+            "fr": "Salade de chou crémeuse du jardin",
+            "es": "Ensalada de col cremosa de la huerta",
+            "ar": "سلطة ملفوف كريمية طازجة"
+          },
+          "description": {
+            "en": "Fresh shredded cabbage tossed in creamy dressing.",
+            "fr": "Chou frais émincé mélangé à une sauce crémeuse.",
+            "es": "Col fresca rallada mezclada con un aderezo cremoso.",
+            "ar": "ملفوف طازج مبشور ممزوج بتتبيلة كريمية."
+          },
+          "price": 2.5,
+          "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "fries",
+          "name": {
+            "en": "Salted Golden Fries",
+            "fr": "Frites dorées salées",
+            "es": "Patatas doradas saladas",
+            "ar": "بطاطس ذهبية مملحة"
+          },
+          "description": {
+            "en": "Crisp potato fries finished with house seasoning.",
+            "fr": "Frites de pommes de terre croustillantes avec l'assaisonnement maison.",
+            "es": "Patatas crujientes terminadas con el sazonado de la casa.",
+            "ar": "بطاطس مقرمشة مع توابل المطعم الخاصة."
+          },
+          "price": 3.25,
+          "image": "https://images.unsplash.com/photo-1576107232684-1279f390859f?w=600",
+          "tag": "Popular",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "mash-potato",
+          "name": {
+            "en": "Creamy Mash Potato",
+            "fr": "Purée de pommes de terre crémeuse",
+            "es": "Puré de patata cremoso",
+            "ar": "بطاطس مهروسة كريمية"
+          },
+          "description": {
+            "en": "Buttery mashed potato finished with a drizzle of gravy.",
+            "fr": "Purée de pommes de terre au beurre avec un filet de sauce.",
+            "es": "Puré de patata con mantequilla y un toque de salsa.",
+            "ar": "بطاطس مهروسة بالزبدة مع القليل من الصلصة."
+          },
+          "price": 5.49,
+          "image": "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=600",
+          "tag": "Contains Milk",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "salad",
+          "name": {
+            "en": "Fresh Market Salad",
+            "fr": "Salade fraîche du marché",
+            "es": "Ensalada fresca del mercado",
+            "ar": "سلطة السوق الطازجة"
+          },
+          "description": {
+            "en": "Leafy greens, tomatoes, cucumber and light herbs.",
+            "fr": "Feuilles vertes, tomates, concombre et herbes légères.",
+            "es": "Hojas verdes, tomates, pepino y hierbas suaves.",
+            "ar": "خضروات ورقية وطماطم وخيار وأعشاب خفيفة."
+          },
+          "price": 3,
+          "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600",
+          "unitLabel": "Side"
+        }
+      ],
+      "appetizerOptions": [
+        {
+          "id": "garlic-bread",
+          "name": {
+            "en": "Cheese Ciabatta Garlic Bread",
+            "fr": "Pain ciabatta à l'ail et au fromage",
+            "es": "Pan ciabatta de ajo con queso",
+            "ar": "خبز تشاباتا بالثوم والجبن"
+          },
+          "description": {
+            "en": "Toasted ciabatta loaded with garlic butter and cheese.",
+            "fr": "Ciabatta grillée garnie de beurre à l'ail et de fromage.",
+            "es": "Ciabatta tostada con mantequilla de ajo y queso.",
+            "ar": "خبز تشاباتا محمص مع زبدة الثوم والجبن."
+          },
+          "price": 4.5,
+          "image": "https://images.unsplash.com/photo-1573140401552-3fab0b24427f?w=600",
+          "tag": "Popular",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "halloumi-fries",
+          "name": {
+            "en": "Halloumi Fries",
+            "fr": "Frites de halloumi",
+            "es": "Tiras de halloumi fritas",
+            "ar": "أصابع حلوم مقلية"
+          },
+          "description": {
+            "en": "Golden fried halloumi strips, crisp on the outside.",
+            "fr": "Bâtonnets de halloumi dorés et croustillants à l'extérieur.",
+            "es": "Tiras de halloumi doradas y crujientes por fuera.",
+            "ar": "أصابع حلوم ذهبية ومقرمشة من الخارج."
+          },
+          "price": 5.5,
+          "image": "https://images.unsplash.com/photo-1631898039984-fb91fdc73946?w=600",
+          "tag": "Popular",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "mozzarella-sticks",
+          "name": {
+            "en": "Mozzarella Sticks",
+            "fr": "Bâtonnets de mozzarella",
+            "es": "Palitos de mozzarella",
+            "ar": "أصابع موزاريلا"
+          },
+          "description": {
+            "en": "Breaded mozzarella, fried until golden and gooey.",
+            "fr": "Mozzarella panée, frite jusqu'à être dorée et fondante.",
+            "es": "Mozzarella empanada, frita hasta quedar dorada y fundente.",
+            "ar": "موزاريلا مغطاة بالبقسماط ومقلية حتى تصبح ذهبية وطرية."
+          },
+          "price": 4.99,
+          "image": "https://images.unsplash.com/photo-1531749668029-2db88e4276c7?w=600",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "chicken-wings",
+          "name": {
+            "en": "Spicy Chicken Wings",
+            "fr": "Ailes de poulet épicées",
+            "es": "Alitas de pollo picantes",
+            "ar": "أجنحة دجاج حارة"
+          },
+          "description": {
+            "en": "Oven-baked wings tossed in a smoky hot sauce.",
+            "fr": "Ailes cuites au four enrobées d'une sauce fumée et relevée.",
+            "es": "Alitas horneadas mezcladas con una salsa ahumada y picante.",
+            "ar": "أجنحة مخبوزة بالفرن مع صلصة مدخنة وحارة."
+          },
+          "price": 6.25,
+          "image": "https://images.unsplash.com/photo-1608039755401-742074f0548d?w=600",
+          "unitLabel": "Appetizer"
+        }
+      ],
+      "modifierGroupIds": [
+        "mod_burger_size",
+        "mod_burger_extras",
+        "mod_choose_fries",
+        "mod_choose_drink",
+        "mod_add_sides",
+        "mod_add_drinks"
+      ],
+      "isPopular": false,
+      "isRecommended": false
+    },
+    {
+      "id": "food-deal-005",
+      "categoryId": "pizza",
+      "name": {
+        "en": "Pepperoni Feast Deal",
+        "fr": "Festin Pepperoni Offre",
+        "es": "Festín de Pepperoni Oferta",
+        "ar": "وليمة بيبروني عرض"
+      },
+      "description": {
+        "en": "Loaded with double pepperoni and mozzarella cheese.",
+        "fr": "Garnie de double pepperoni et de fromage mozzarella.",
+        "es": "Cargada con doble pepperoni y queso mozzarella.",
+        "ar": "مليئة بكمية مضاعفة من البيبروني وجبن الموزاريلا."
+      },
+      "price": 15.5,
+      "image": [
+        "/assets/deals/deal5.avif"
+      ],
+      "rating": 4.7,
+      "prepTimeMinutes": 20,
+      "calories": 950,
+      "tags": [
+        "spicy",
+        "deal"
+      ],
+      "isRecommended": false,
+      "fulfillmentOptions": [
+        {
+          "mode": "delivery",
+          "label": "Delivery",
+          "timeLabel": "Arrival",
+          "timeValue": "30-40 min",
+          "locationLabel": "Deliver to",
+          "locationValue": "23 King Street, Lekki Phase 1",
+          "feeLabel": "Delivery fee",
+          "feeValue": "£1.99"
+        },
+        {
+          "mode": "pickup",
+          "label": "Pickup",
+          "timeLabel": "Prep time",
+          "timeValue": "17-22 min",
+          "locationLabel": "Store",
+          "locationValue": "0.4 mi away - 789 Park Avenue",
+          "feeLabel": "Pickup",
+          "feeValue": "Free"
+        }
+      ],
+      "sizeOptions": [
+        {
+          "id": "small",
+          "label": "Small",
+          "measurementLabel": "8 inches",
+          "priceOffset": 0
+        },
+        {
+          "id": "regular",
+          "label": "Regular",
+          "measurementLabel": "10 inches",
+          "priceOffset": 2
+        },
+        {
+          "id": "large",
+          "label": "Large",
+          "measurementLabel": "12 inches",
+          "priceOffset": 4
+        },
+        {
+          "id": "extra-large",
+          "label": "XL",
+          "measurementLabel": "14 inches",
+          "priceOffset": 6
+        }
+      ],
+      "sideOptions": [
+        {
+          "id": "onion-rings",
+          "name": {
+            "en": "Crispy Onion Rings",
+            "fr": "Rondelles d'oignon croustillantes",
+            "es": "Aros de cebolla crujientes",
+            "ar": "حلقات بصل مقرمشة"
+          },
+          "description": {
+            "en": "Golden fried rings with a light seasoned crunch.",
+            "fr": "Rondelles dorées frites avec un assaisonnement léger et croustillant.",
+            "es": "Aros dorados fritos con un ligero toque crujiente y sazonado.",
+            "ar": "حلقات ذهبية مقلية بقرمشة وتتبيلة خفيفة."
+          },
+          "price": 2.25,
+          "image": "https://images.unsplash.com/photo-1639024471283-03518883512d?w=600",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "coleslaw",
+          "name": {
+            "en": "Creamy Garden Coleslaw",
+            "fr": "Salade de chou crémeuse du jardin",
+            "es": "Ensalada de col cremosa de la huerta",
+            "ar": "سلطة ملفوف كريمية طازجة"
+          },
+          "description": {
+            "en": "Fresh shredded cabbage tossed in creamy dressing.",
+            "fr": "Chou frais émincé mélangé à une sauce crémeuse.",
+            "es": "Col fresca rallada mezclada con un aderezo cremoso.",
+            "ar": "ملفوف طازج مبشور ممزوج بتتبيلة كريمية."
+          },
+          "price": 2.5,
+          "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "fries",
+          "name": {
+            "en": "Salted Golden Fries",
+            "fr": "Frites dorées salées",
+            "es": "Patatas doradas saladas",
+            "ar": "بطاطس ذهبية مملحة"
+          },
+          "description": {
+            "en": "Crisp potato fries finished with house seasoning.",
+            "fr": "Frites de pommes de terre croustillantes avec l'assaisonnement maison.",
+            "es": "Patatas crujientes terminadas con el sazonado de la casa.",
+            "ar": "بطاطس مقرمشة مع توابل المطعم الخاصة."
+          },
+          "price": 3.25,
+          "image": "https://images.unsplash.com/photo-1576107232684-1279f390859f?w=600",
+          "tag": "Popular",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "mash-potato",
+          "name": {
+            "en": "Creamy Mash Potato",
+            "fr": "Purée de pommes de terre crémeuse",
+            "es": "Puré de patata cremoso",
+            "ar": "بطاطس مهروسة كريمية"
+          },
+          "description": {
+            "en": "Buttery mashed potato finished with a drizzle of gravy.",
+            "fr": "Purée de pommes de terre au beurre avec un filet de sauce.",
+            "es": "Puré de patata con mantequilla y un toque de salsa.",
+            "ar": "بطاطس مهروسة بالزبدة مع القليل من الصلصة."
+          },
+          "price": 5.49,
+          "image": "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=600",
+          "tag": "Contains Milk",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "salad",
+          "name": {
+            "en": "Fresh Market Salad",
+            "fr": "Salade fraîche du marché",
+            "es": "Ensalada fresca del mercado",
+            "ar": "سلطة السوق الطازجة"
+          },
+          "description": {
+            "en": "Leafy greens, tomatoes, cucumber and light herbs.",
+            "fr": "Feuilles vertes, tomates, concombre et herbes légères.",
+            "es": "Hojas verdes, tomates, pepino y hierbas suaves.",
+            "ar": "خضروات ورقية وطماطم وخيار وأعشاب خفيفة."
+          },
+          "price": 3,
+          "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600",
+          "unitLabel": "Side"
+        }
+      ],
+      "appetizerOptions": [
+        {
+          "id": "garlic-bread",
+          "name": {
+            "en": "Cheese Ciabatta Garlic Bread",
+            "fr": "Pain ciabatta à l'ail et au fromage",
+            "es": "Pan ciabatta de ajo con queso",
+            "ar": "خبز تشاباتا بالثوم والجبن"
+          },
+          "description": {
+            "en": "Toasted ciabatta loaded with garlic butter and cheese.",
+            "fr": "Ciabatta grillée garnie de beurre à l'ail et de fromage.",
+            "es": "Ciabatta tostada con mantequilla de ajo y queso.",
+            "ar": "خبز تشاباتا محمص مع زبدة الثوم والجبن."
+          },
+          "price": 4.5,
+          "image": "https://images.unsplash.com/photo-1573140401552-3fab0b24427f?w=600",
+          "tag": "Popular",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "halloumi-fries",
+          "name": {
+            "en": "Halloumi Fries",
+            "fr": "Frites de halloumi",
+            "es": "Tiras de halloumi fritas",
+            "ar": "أصابع حلوم مقلية"
+          },
+          "description": {
+            "en": "Golden fried halloumi strips, crisp on the outside.",
+            "fr": "Bâtonnets de halloumi dorés et croustillants à l'extérieur.",
+            "es": "Tiras de halloumi doradas y crujientes por fuera.",
+            "ar": "أصابع حلوم ذهبية ومقرمشة من الخارج."
+          },
+          "price": 5.5,
+          "image": "https://images.unsplash.com/photo-1631898039984-fb91fdc73946?w=600",
+          "tag": "Popular",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "mozzarella-sticks",
+          "name": {
+            "en": "Mozzarella Sticks",
+            "fr": "Bâtonnets de mozzarella",
+            "es": "Palitos de mozzarella",
+            "ar": "أصابع موزاريلا"
+          },
+          "description": {
+            "en": "Breaded mozzarella, fried until golden and gooey.",
+            "fr": "Mozzarella panée, frite jusqu'à être dorée et fondante.",
+            "es": "Mozzarella empanada, frita hasta quedar dorada y fundente.",
+            "ar": "موزاريلا مغطاة بالبقسماط ومقلية حتى تصبح ذهبية وطرية."
+          },
+          "price": 4.99,
+          "image": "https://images.unsplash.com/photo-1531749668029-2db88e4276c7?w=600",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "chicken-wings",
+          "name": {
+            "en": "Spicy Chicken Wings",
+            "fr": "Ailes de poulet épicées",
+            "es": "Alitas de pollo picantes",
+            "ar": "أجنحة دجاج حارة"
+          },
+          "description": {
+            "en": "Oven-baked wings tossed in a smoky hot sauce.",
+            "fr": "Ailes cuites au four enrobées d'une sauce fumée et relevée.",
+            "es": "Alitas horneadas mezcladas con una salsa ahumada y picante.",
+            "ar": "أجنحة مخبوزة بالفرن مع صلصة مدخنة وحارة."
+          },
+          "price": 6.25,
+          "image": "https://images.unsplash.com/photo-1608039755401-742074f0548d?w=600",
+          "unitLabel": "Appetizer"
+        }
+      ],
+      "modifierGroupIds": [
+        "mod_pizza_size",
+        "mod_pizza_crust",
+        "mod_pizza_toppings",
+        "mod_add_drinks"
+      ],
+      "isPopular": false
+    },
+    {
+      "id": "food-deal-006",
+      "categoryId": "salads",
+      "name": {
+        "en": "Avocado Garden Salad Deal",
+        "fr": "Salade Jardin Avocat Offre",
+        "es": "Ensalada de Jardín con Aguacate Oferta",
+        "ar": "سلطة الحديقة بالأفوكادو عرض"
+      },
+      "description": {
+        "en": "Crisp greens, avocado, cherry tomatoes and citrus dressing.",
+        "fr": "Verdures croquantes, avocat, tomates cerises et vinaigrette aux agrumes.",
+        "es": "Verduras crujientes, aguacate, tomates cherry y aderezo cítrico.",
+        "ar": "خضار مقرمشة وأفوكادو وطماطم كرزية وتتبيلة حمضيات."
+      },
+      "price": 9.5,
+      "image": [
+        "/assets/deals/dela1.webp"
+      ],
+      "rating": 4.5,
+      "prepTimeMinutes": 8,
+      "calories": 320,
+      "tags": [
+        "vegetarian",
+        "healthy",
+        "deal"
+      ],
+      "fulfillmentOptions": [
+        {
+          "mode": "delivery",
+          "label": "Delivery",
+          "timeLabel": "Arrival",
+          "timeValue": "18-28 min",
+          "locationLabel": "Deliver to",
+          "locationValue": "23 King Street, Lekki Phase 1",
+          "feeLabel": "Delivery fee",
+          "feeValue": "£1.99"
+        },
+        {
+          "mode": "pickup",
+          "label": "Pickup",
+          "timeLabel": "Prep time",
+          "timeValue": "5-10 min",
+          "locationLabel": "Store",
+          "locationValue": "0.4 mi away - 789 Park Avenue",
+          "feeLabel": "Pickup",
+          "feeValue": "Free"
+        }
+      ],
+      "sizeOptions": [
+        {
+          "id": "small",
+          "label": "Small",
+          "measurementLabel": "single serve",
+          "priceOffset": 0
+        },
+        {
+          "id": "regular",
+          "label": "Regular",
+          "measurementLabel": "standard",
+          "priceOffset": 2
+        },
+        {
+          "id": "large",
+          "label": "Large",
+          "measurementLabel": "double serve",
+          "priceOffset": 4
+        },
+        {
+          "id": "family",
+          "label": "Family",
+          "measurementLabel": "share box",
+          "priceOffset": 6
+        }
+      ],
+      "sideOptions": [
+        {
+          "id": "onion-rings",
+          "name": {
+            "en": "Crispy Onion Rings",
+            "fr": "Rondelles d'oignon croustillantes",
+            "es": "Aros de cebolla crujientes",
+            "ar": "حلقات بصل مقرمشة"
+          },
+          "description": {
+            "en": "Golden fried rings with a light seasoned crunch.",
+            "fr": "Rondelles dorées frites avec un assaisonnement léger et croustillant.",
+            "es": "Aros dorados fritos con un ligero toque crujiente y sazonado.",
+            "ar": "حلقات ذهبية مقلية بقرمشة وتتبيلة خفيفة."
+          },
+          "price": 2.25,
+          "image": "https://images.unsplash.com/photo-1639024471283-03518883512d?w=600",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "coleslaw",
+          "name": {
+            "en": "Creamy Garden Coleslaw",
+            "fr": "Salade de chou crémeuse du jardin",
+            "es": "Ensalada de col cremosa de la huerta",
+            "ar": "سلطة ملفوف كريمية طازجة"
+          },
+          "description": {
+            "en": "Fresh shredded cabbage tossed in creamy dressing.",
+            "fr": "Chou frais émincé mélangé à une sauce crémeuse.",
+            "es": "Col fresca rallada mezclada con un aderezo cremoso.",
+            "ar": "ملفوف طازج مبشور ممزوج بتتبيلة كريمية."
+          },
+          "price": 2.5,
+          "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "fries",
+          "name": {
+            "en": "Salted Golden Fries",
+            "fr": "Frites dorées salées",
+            "es": "Patatas doradas saladas",
+            "ar": "بطاطس ذهبية مملحة"
+          },
+          "description": {
+            "en": "Crisp potato fries finished with house seasoning.",
+            "fr": "Frites de pommes de terre croustillantes avec l'assaisonnement maison.",
+            "es": "Patatas crujientes terminadas con el sazonado de la casa.",
+            "ar": "بطاطس مقرمشة مع توابل المطعم الخاصة."
+          },
+          "price": 3.25,
+          "image": "https://images.unsplash.com/photo-1576107232684-1279f390859f?w=600",
+          "tag": "Popular",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "mash-potato",
+          "name": {
+            "en": "Creamy Mash Potato",
+            "fr": "Purée de pommes de terre crémeuse",
+            "es": "Puré de patata cremoso",
+            "ar": "بطاطس مهروسة كريمية"
+          },
+          "description": {
+            "en": "Buttery mashed potato finished with a drizzle of gravy.",
+            "fr": "Purée de pommes de terre au beurre avec un filet de sauce.",
+            "es": "Puré de patata con mantequilla y un toque de salsa.",
+            "ar": "بطاطس مهروسة بالزبدة مع القليل من الصلصة."
+          },
+          "price": 5.49,
+          "image": "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=600",
+          "tag": "Contains Milk",
+          "unitLabel": "Side"
+        },
+        {
+          "id": "salad",
+          "name": {
+            "en": "Fresh Market Salad",
+            "fr": "Salade fraîche du marché",
+            "es": "Ensalada fresca del mercado",
+            "ar": "سلطة السوق الطازجة"
+          },
+          "description": {
+            "en": "Leafy greens, tomatoes, cucumber and light herbs.",
+            "fr": "Feuilles vertes, tomates, concombre et herbes légères.",
+            "es": "Hojas verdes, tomates, pepino y hierbas suaves.",
+            "ar": "خضروات ورقية وطماطم وخيار وأعشاب خفيفة."
+          },
+          "price": 3,
+          "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600",
+          "unitLabel": "Side"
+        }
+      ],
+      "appetizerOptions": [
+        {
+          "id": "garlic-bread",
+          "name": {
+            "en": "Cheese Ciabatta Garlic Bread",
+            "fr": "Pain ciabatta à l'ail et au fromage",
+            "es": "Pan ciabatta de ajo con queso",
+            "ar": "خبز تشاباتا بالثوم والجبن"
+          },
+          "description": {
+            "en": "Toasted ciabatta loaded with garlic butter and cheese.",
+            "fr": "Ciabatta grillée garnie de beurre à l'ail et de fromage.",
+            "es": "Ciabatta tostada con mantequilla de ajo y queso.",
+            "ar": "خبز تشاباتا محمص مع زبدة الثوم والجبن."
+          },
+          "price": 4.5,
+          "image": "https://images.unsplash.com/photo-1573140401552-3fab0b24427f?w=600",
+          "tag": "Popular",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "halloumi-fries",
+          "name": {
+            "en": "Halloumi Fries",
+            "fr": "Frites de halloumi",
+            "es": "Tiras de halloumi fritas",
+            "ar": "أصابع حلوم مقلية"
+          },
+          "description": {
+            "en": "Golden fried halloumi strips, crisp on the outside.",
+            "fr": "Bâtonnets de halloumi dorés et croustillants à l'extérieur.",
+            "es": "Tiras de halloumi doradas y crujientes por fuera.",
+            "ar": "أصابع حلوم ذهبية ومقرمشة من الخارج."
+          },
+          "price": 5.5,
+          "image": "https://images.unsplash.com/photo-1631898039984-fb91fdc73946?w=600",
+          "tag": "Popular",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "mozzarella-sticks",
+          "name": {
+            "en": "Mozzarella Sticks",
+            "fr": "Bâtonnets de mozzarella",
+            "es": "Palitos de mozzarella",
+            "ar": "أصابع موزاريلا"
+          },
+          "description": {
+            "en": "Breaded mozzarella, fried until golden and gooey.",
+            "fr": "Mozzarella panée, frite jusqu'à être dorée et fondante.",
+            "es": "Mozzarella empanada, frita hasta quedar dorada y fundente.",
+            "ar": "موزاريلا مغطاة بالبقسماط ومقلية حتى تصبح ذهبية وطرية."
+          },
+          "price": 4.99,
+          "image": "https://images.unsplash.com/photo-1531749668029-2db88e4276c7?w=600",
+          "unitLabel": "Appetizer"
+        },
+        {
+          "id": "chicken-wings",
+          "name": {
+            "en": "Spicy Chicken Wings",
+            "fr": "Ailes de poulet épicées",
+            "es": "Alitas de pollo picantes",
+            "ar": "أجنحة دجاج حارة"
+          },
+          "description": {
+            "en": "Oven-baked wings tossed in a smoky hot sauce.",
+            "fr": "Ailes cuites au four enrobées d'une sauce fumée et relevée.",
+            "es": "Alitas horneadas mezcladas con una salsa ahumada y picante.",
+            "ar": "أجنحة مخبوزة بالفرن مع صلصة مدخنة وحارة."
+          },
+          "price": 6.25,
+          "image": "https://images.unsplash.com/photo-1608039755401-742074f0548d?w=600",
+          "unitLabel": "Appetizer"
+        }
+      ],
+      "modifierGroupIds": [
+        "mod_add_appetizers",
+        "mod_add_sides",
+        "mod_add_drinks"
+      ],
+      "isPopular": false,
+      "isRecommended": false
     }
   ],
   "heroSlides": [

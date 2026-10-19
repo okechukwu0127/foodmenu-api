@@ -24,6 +24,22 @@ enum PaymentStatus {
   PARTIALLY_REFUNDED
 }
 
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  CONFIRMED
+  PREPARING
+  READY_FOR_PICKUP
+  COURIER_ASSIGNED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  COMPLETED
+  PAYMENT_FAILED
+  CANCELED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
 enum ModifierSelectionType {
   SINGLE
   MULTIPLE
@@ -33,6 +49,19 @@ enum DefaultModifierScope {
   GLOBAL
   CATEGORY
   FOOD_ITEM
+}
+
+enum FulfilmentStatus {
+  NOT_REQUESTED
+  QUOTE_REQUESTED
+  CREATED
+  COURIER_ASSIGNED
+  PICKUP_STARTED
+  PICKED_UP
+  DROPOFF_STARTED
+  DELIVERED
+  CANCELED
+  FAILED
 }
 
 model PaymentTransaction {
@@ -53,6 +82,165 @@ model PaymentTransaction {
   @@index([provider])
   @@index([orderId])
   @@index([customerId])
+  @@index([createdAt])
+}
+
+model Customer {
+  id               String                  @id
+  firstName        String?
+  lastName         String?
+  email            String?
+  phone            String?
+  stripeCustomerId String?                 @unique
+  isDemo           Boolean                 @default(false)
+  metadata         Json?
+  orders           Order[]
+  paymentMethods   CustomerPaymentMethod[]
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  @@index([email])
+  @@index([phone])
+  @@index([isDemo])
+}
+
+model CustomerPaymentMethod {
+  id                    String    @id @default(cuid())
+  customerId            String
+  stripeCustomerId      String
+  stripePaymentMethodId String    @unique
+  alias                 String?
+  holderName            String?
+  brand                 String
+  last4                 String
+  expMonth              Int
+  expYear               Int
+  isDefault             Boolean   @default(false)
+  deletedAt             DateTime?
+  customer              Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([customerId])
+  @@index([stripeCustomerId])
+  @@index([isDefault])
+  @@index([deletedAt])
+}
+
+model Order {
+  id                String                    @id @default(cuid())
+  orderNumber       String                    @unique
+  checkoutSessionId String?                   @unique
+  customerId        String
+  status            OrderStatus               @default(PENDING_PAYMENT)
+  paymentIntentId   String?                   @unique
+  amount            Int
+  currency          String                    @default("gbp")
+  subtotal          Int?
+  deliveryFee       Int?
+  taxAmount         Int?
+  discountAmount    Int?
+  notes             String?
+  deliveryAddress   Json?
+  metadata          Json?
+  customer          Customer                  @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  fulfilments       OrderFulfilment[]
+  items             OrderItem[]
+  routeCaches       OrderTrackingRouteCache[]
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  @@index([customerId])
+  @@index([checkoutSessionId])
+  @@index([status])
+  @@index([paymentIntentId])
+  @@index([createdAt])
+}
+
+model OrderTrackingRouteCache {
+  id          String   @id @default(cuid())
+  orderId     String
+  status      String
+  originLat   Float
+  originLng   Float
+  destLat     Float
+  destLng     Float
+  coordinates Json
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([orderId, status])
+}
+
+model OrderItem {
+  id           String   @id @default(cuid())
+  orderId      String
+  foodItemId   String?
+  categoryId   String?
+  name         String
+  description  String?
+  imageUrl     String?
+  quantity     Int      @default(1)
+  unitAmount   Int
+  totalAmount  Int
+  currency     String   @default("gbp")
+  modifiers    Json?
+  itemSnapshot Json?
+  metadata     Json?
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([foodItemId])
+  @@index([categoryId])
+}
+
+model FulfilmentProvider {
+  id          String            @id @default(cuid())
+  code        String            @unique
+  name        String
+  isActive    Boolean           @default(true)
+  config      Json?
+  fulfilments OrderFulfilment[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([isActive])
+}
+
+model OrderFulfilment {
+  id                   String             @id @default(cuid())
+  orderId              String
+  fulfilmentProviderId String
+  status               FulfilmentStatus   @default(NOT_REQUESTED)
+  providerJobId        String?
+  providerDeliveryId   String?
+  trackingUrl          String?
+  clientTrackingUrl    String?
+  courierName          String?
+  courierPhone         String?
+  courierLatitude      Float?
+  courierLongitude     Float?
+  estimatedPickupAt    DateTime?
+  estimatedDropoffAt   DateTime?
+  pickedUpAt           DateTime?
+  deliveredAt          DateTime?
+  failedReason         String?
+  rawProviderPayload   Json?
+  metadata             Json?
+  order                Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider             FulfilmentProvider @relation(fields: [fulfilmentProviderId], references: [id], onDelete: Restrict)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([orderId])
+  @@index([fulfilmentProviderId])
+  @@index([status])
+  @@index([providerJobId])
+  @@index([providerDeliveryId])
   @@index([createdAt])
 }
 
@@ -102,7 +290,7 @@ model FoodItem {
   category              Category                @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   images                FoodImage[]
   deals                 Deal[]
-  hotBurgerCombos       HotBurgerCombo[]
+  hotCombos             HotCombo[]
   modifierGroups        FoodItemModifierGroup[]
   defaultModifierGroups DefaultModifierGroup[]
   createdAt             DateTime                @default(now())
@@ -179,7 +367,7 @@ model HeroSlide {
   @@index([sortOrder])
 }
 
-model HotBurgerCombo {
+model HotCombo {
   id                String    @id @default(cuid())
   title             String
   nameData          Json?

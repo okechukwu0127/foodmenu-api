@@ -7,15 +7,19 @@ import { ApiResponseInterceptor } from "@app/common";
 import { envValidationSchema } from "@app/config";
 import { PaymentsController } from "./payments/payments.controller";
 import { StripeWebhookController } from "./webhooks/stripe-webhook.controller";
+import { StuartWebhookController } from "./webhooks/stuart-webhook.controller";
 import { HealthController } from "./health.controller";
 import { MenuController } from "./menu/menu.controller";
+import { OrdersController } from "./orders/orders.controller";
 
 @Module({
   controllers: [
     HealthController,
     MenuController,
+    OrdersController,
     PaymentsController,
     StripeWebhookController,
+    StuartWebhookController,
   ],
   imports: [
     ConfigModule.forRoot({
@@ -50,6 +54,18 @@ import { MenuController } from "./menu/menu.controller";
           options: {
             host: configService.get<string>("MENU_SERVICE_HOST", "127.0.0.1"),
             port: configService.get<number>("MENU_SERVICE_PORT", 4020),
+          },
+          transport: Transport.TCP,
+        }),
+      },
+      {
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        name: "ORDER_SERVICE",
+        useFactory: (configService: ConfigService) => ({
+          options: {
+            host: configService.get<string>("ORDER_SERVICE_HOST", "127.0.0.1"),
+            port: configService.get<number>("ORDER_SERVICE_PORT", 4030),
           },
           transport: Transport.TCP,
         }),

@@ -15,6 +15,7 @@ type CatalogSeed = {
     name: LocalizedText;
   }>;
   deals: Array<{
+    foodItemId?: string;
     accentColor: string;
     backgroundColor: string;
     id: string;
@@ -27,7 +28,7 @@ type CatalogSeed = {
   drinkAddOns: CatalogAddOn[];
   foods: Array<{
     appetizerOptions: CatalogAddOn[];
-    calories: number;
+    calories?: number;
     categoryId: string;
     description: LocalizedText;
     discountPercent?: number;
@@ -39,9 +40,9 @@ type CatalogSeed = {
     isRecommended?: boolean;
     modifierGroupIds: string[];
     name: LocalizedText;
-    prepTimeMinutes: number;
+    prepTimeMinutes?: number;
     price: number;
-    rating: number;
+    rating?: number;
     sideOptions: CatalogAddOn[];
     sizeOptions: unknown[];
     tags: string[];
@@ -53,7 +54,8 @@ type CatalogSeed = {
     subtitle: LocalizedText;
     title: LocalizedText;
   }>;
-  hotBurgerCombos: Array<{
+  hotCombos: Array<{
+    foodItemId?: string;
     categoryLabel: LocalizedText;
     description: LocalizedText;
     id: string;
@@ -134,7 +136,7 @@ async function clearMenuCatalog() {
   await prisma.foodItemModifierGroup.deleteMany();
   await prisma.foodImage.deleteMany();
   await prisma.deal.deleteMany();
-  await prisma.hotBurgerCombo.deleteMany();
+  await prisma.hotCombo.deleteMany();
   await prisma.heroSlide.deleteMany();
   await prisma.drinkAddOn.deleteMany();
   await prisma.appetizerOption.deleteMany();
@@ -148,6 +150,7 @@ async function main() {
   const catalog = loadCatalog();
 
   await clearMenuCatalog();
+  await seedFulfilmentProviders();
 
   for (const [index, category] of catalog.categories.entries()) {
     await prisma.category.create({
@@ -287,6 +290,7 @@ async function main() {
       data: {
         accentColor: deal.accentColor,
         backgroundColor: deal.backgroundColor,
+        foodItemId: deal.foodItemId,
         description: localized(deal.offerDesc),
         id: deal.id,
         imageUrl: imageUrl(deal.image),
@@ -301,10 +305,11 @@ async function main() {
     });
   }
 
-  for (const [index, combo] of catalog.hotBurgerCombos.entries()) {
-    await prisma.hotBurgerCombo.create({
+  for (const [index, combo] of catalog.hotCombos.entries()) {
+    await prisma.hotCombo.create({
       data: {
         categoryLabel: localized(combo.categoryLabel),
+        foodItemId: combo.foodItemId,
         categoryLabelData: combo.categoryLabel,
         descriptionData: combo.description,
         id: combo.id,
@@ -367,6 +372,49 @@ async function main() {
           locale: translation.locale,
         },
       },
+    });
+  }
+}
+
+async function seedFulfilmentProviders() {
+  const providers = [
+    {
+      code: "STUART",
+      config: {
+        docs: "https://api-docs.stuart.com/",
+        mode: "manual-first",
+      },
+      isActive: true,
+      name: "Stuart",
+    },
+    {
+      code: "UBER_DIRECT",
+      config: {
+        docs: "https://developer.uber.com/docs/deliveries",
+        mode: "reserved",
+      },
+      isActive: false,
+      name: "Uber Direct",
+    },
+    {
+      code: "MANUAL_DELIVERY",
+      config: {
+        mode: "internal",
+      },
+      isActive: true,
+      name: "Manual Delivery",
+    },
+  ];
+
+  for (const provider of providers) {
+    await prisma.fulfilmentProvider.upsert({
+      create: provider,
+      update: {
+        config: provider.config,
+        isActive: provider.isActive,
+        name: provider.name,
+      },
+      where: { code: provider.code },
     });
   }
 }

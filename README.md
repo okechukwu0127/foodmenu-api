@@ -2,9 +2,9 @@
 
 Production-ready NestJS monorepo backend for the foodMenu mobile app.
 
-The backend currently implements Stripe payments and the public Menu Catalog API,
-while keeping the project ready for future services such as orders, users,
-wallet, and notifications.
+The backend currently implements Stripe payments, order persistence, and the
+public Menu Catalog API, while keeping the project ready for future services
+such as users, wallet, and notifications.
 
 ## Architecture
 
@@ -12,6 +12,7 @@ wallet, and notifications.
 apps/
   api-gateway/       Public HTTP API consumed by the mobile app
   menu-service/      Public read menu/catalog data service
+  order-service/     Customer, order, order item, and order status service
   payment-service/   Stripe + payment persistence microservice
 
 libs/
@@ -28,8 +29,9 @@ prisma/
   seed-data/         Full mobile catalog seed snapshot and seed helpers
 ```
 
-The API Gateway communicates with payment-service and menu-service through Nest
-TCP transport. Stripe SDK usage stays isolated inside payment-service, while
+The API Gateway communicates with payment-service, order-service, and
+menu-service through Nest TCP transport. Stripe SDK usage stays isolated inside
+payment-service, order-service owns customers/orders/order items, and
 menu-service owns catalog database reads.
 
 ## Local Setup
@@ -41,6 +43,22 @@ npm run prisma:generate
 npm run prisma:migrate
 npm run prisma:seed
 npm run start:dev
+```
+
+For a fresh hosted environment, use deploy migrations instead of development
+migrations:
+
+```bash
+npm install
+npm run prisma:generate
+npm run db:setup
+```
+
+`db:setup` runs:
+
+```bash
+npm run prisma:deploy
+npm run prisma:seed
 ```
 
 ## Docker
@@ -58,6 +76,8 @@ Services:
   - npm run start:dev:payment
 - Menu service TCP: `localhost:4020`
   - npm run start:dev:menu
+- Order service TCP: `localhost:4030`
+  - npm run start:dev:order
 - Swagger: `http://localhost:4000/api/docs`
 - OpenAPI JSON: `http://localhost:4000/api/docs-json`
 - Postgres: `localhost:5432`
@@ -81,6 +101,8 @@ PAYMENT_SERVICE_HOST
 PAYMENT_SERVICE_PORT
 MENU_SERVICE_HOST
 MENU_SERVICE_PORT
+ORDER_SERVICE_HOST
+ORDER_SERVICE_PORT
 DATABASE_URL
 POSTGRES_USER
 POSTGRES_PASSWORD
@@ -89,6 +111,20 @@ PGADMIN_DEFAULT_EMAIL
 PGADMIN_DEFAULT_PASSWORD
 STRIPE_SECRET_KEY
 STRIPE_WEBHOOK_SECRET
+STUART_WEBHOOK_SECRET
+STUART_API_BASE_URL
+STUART_CLIENT_ID
+STUART_CLIENT_SECRET
+STUART_ACCOUNT_ID
+STUART_PICKUP_ADDRESS
+STUART_PICKUP_LATITUDE
+STUART_PICKUP_LONGITUDE
+STUART_PICKUP_PHONE
+STUART_PICKUP_COMPANY
+STUART_PICKUP_EMAIL
+STUART_PICKUP_DELAY_MINUTES
+STUART_PACKAGE_TYPE
+GOOGLE_ROUTES_API_KEY
 FOODMENU_APP_URL
 ```
 
@@ -147,7 +183,7 @@ Response shape:
     "heroSlides": [],
     "categories": [],
     "deals": [],
-    "hotBurgerCombos": [],
+    "hotCombos": [],
     "drinkAddOns": [],
     "modifierGroups": [],
     "modifierLabelTranslations": [],
@@ -204,6 +240,71 @@ GET /api/v1/menu/modifier-label-translations
 Payment endpoints also use the standard API response envelope. The payment
 result is returned inside `data`.
 
+### Save Cards With Stripe
+
+The mobile app should collect card details with Stripe UI components only. The
+backend stores safe card metadata and Stripe ids, never raw card numbers.
+
+Create a SetupIntent before confirming the card in the mobile app:
+
+```bash
+curl -X POST http://localhost:4000/api/v1/payments/stripe/setup-intent \
+  -H "Content-Type: application/json" \
+  -d '{"customerId":"customer_123"}'
+```
+
+After the mobile app confirms the SetupIntent with Stripe SDK, save the returned
+payment method id:
+
+```bash
+curl -X POST http://localhost:4000/api/v1/payments/stripe/payment-methods \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customerId": "customer_123",
+    "paymentMethodId": "pm_123",
+    "alias": "Personal Visa",
+    "holderName": "John Doe"
+  }'
+```
+
+List saved cards:
+
+```bash
+curl "http://localhost:4000/api/v1/payments/stripe/payment-methods?customerId=customer_123"
+```
+
+Update a saved card alias/default state:
+
+```bash
+curl -X PATCH http://localhost:4000/api/v1/payments/stripe/payment-methods/card_db_id \
+  -H "Content-Type: application/json" \
+  -d '{"alias":"Work card","isDefault":true}'
+```
+
+Detach and soft-delete a saved card:
+
+```bash
+curl -X DELETE http://localhost:4000/api/v1/payments/stripe/payment-methods/card_db_id
+```
+
+Checkout can now use either the Stripe payment method id or the local saved card
+id:
+
+```json
+{
+  "amount": 2500,
+  "currency": "gbp",
+  "customerId": "customer_123",
+  "checkoutSessionId": "checkout_1791909664130",
+  "savedPaymentMethodId": "card_db_id"
+}
+```
+
+`checkoutSessionId` is the checkout idempotency key. Generate it once when the
+customer starts the checkout/payment attempt and reuse the same value on network
+retries. The backend uses it to reuse the same pending order and Stripe
+idempotency key instead of creating duplicate orders/payment intents.
+
 ### Create Payment Intent
 
 ```bash
@@ -222,6 +323,8 @@ Response:
   "message": "Request successful",
   "data": {
     "clientSecret": "pi_...",
+    "customerEphemeralKeySecret": "ek_...",
+    "customerId": "cus_...",
     "paymentIntentId": "pi_...",
     "status": "requires_payment_method"
   },
@@ -229,6 +332,281 @@ Response:
   "timestamp": "2026-09-29T00:00:00.000Z"
 }
 ```
+
+The `payment-intent` request is also where the frontend should send the checkout
+order snapshot. Order-service creates the order as `PENDING_PAYMENT`, then
+payment-service updates it through TCP after Stripe status changes.
+
+Pass customer/order data like this:
+
+```json
+{
+  "amount": 2897,
+  "currency": "gbp",
+  "customer": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john@example.com",
+    "phone": "+447700900123"
+  },
+  "order": {
+    "deliveryFee": 199,
+    "deliveryAddress": {
+      "line1": "23 King Street",
+      "city": "London",
+      "postcode": "SW1A 1AA",
+      "country": "GB"
+    },
+    "items": [
+      {
+        "foodItemId": "food-001",
+        "categoryId": "burgers",
+        "name": "Smoky BBQ Burger",
+        "description": "Juicy beef patty with smoky BBQ sauce.",
+        "imageUrl": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200",
+        "quantity": 2,
+        "unitAmount": 1299,
+        "modifiers": [
+          {
+            "groupId": "mod_burger_size",
+            "groupName": "Choose your burger size",
+            "optionId": "opt_burger_large",
+            "optionName": "Large",
+            "priceOffset": 200,
+            "quantity": 1
+          }
+        ],
+        "itemSnapshot": {
+          "tags": ["beef", "spicy"],
+          "rating": 4.8,
+          "calories": 720
+        }
+      }
+    ]
+  }
+}
+```
+
+## Order Endpoints
+
+Order reads go through the API Gateway and are served by order-service.
+
+Use this endpoint for the app order hook. Without `statusGroup`, it returns the
+three tab groups in one response:
+
+```bash
+curl "http://localhost:4000/api/v1/orders?customerId=customer_123"
+```
+
+Response `data` shape:
+
+```json
+{
+  "active": [],
+  "completed": [],
+  "cancelled": [],
+  "counts": {
+    "active": 0,
+    "completed": 0,
+    "cancelled": 0
+  }
+}
+```
+
+Each order includes `primaryItem`, detailed `items`, `statusGroup`,
+`statusLabel`, and UI action flags such as `canCancel`, `canTrack`,
+`canReorder`, and `canViewReceipt`. Active orders also include
+`latestFulfilment` when delivery tracking has been created.
+
+You can also fetch just one tab:
+
+```bash
+curl "http://localhost:4000/api/v1/orders?customerId=customer_123&statusGroup=active"
+```
+
+For the detail screen:
+
+```bash
+curl http://localhost:4000/api/v1/orders/FM-1720000000000-ABC123
+```
+
+You can pass either the internal order id or the public `orderNumber`.
+
+### Fulfilment
+
+Fulfilment records are owned by order-service and linked to both the order and
+the fulfilment provider. This keeps Stuart, Uber Direct, or manual delivery data
+out of the main order row while still giving the mobile app one clean order
+payload.
+
+List enabled fulfilment providers:
+
+```bash
+curl http://localhost:4000/api/v1/orders/fulfilment/providers
+```
+
+Create a fulfilment record for an order:
+
+```bash
+curl -X POST http://localhost:4000/api/v1/orders/FM-1720000000000-ABC123/fulfilment \
+  -H "Content-Type: application/json" \
+  -d '{
+    "providerCode": "STUART",
+    "providerJobId": "job_123",
+    "providerDeliveryId": "delivery_123",
+    "status": "CREATED",
+    "clientTrackingUrl": "https://tracking.stuart.com/customer/abc"
+  }'
+```
+
+Get tracking state for an order:
+
+```bash
+curl http://localhost:4000/api/v1/orders/FM-1720000000000-ABC123/tracking
+```
+
+Tracking responses include pickup/dropoff locations and a `route.coordinates`
+array for mobile map polylines. If `GOOGLE_ROUTES_API_KEY` is configured,
+order-service calls Google Routes API, decodes the returned road-following
+polyline, and caches the route briefly to avoid calling Google on every polling
+request.
+
+```json
+{
+  "pickup": {
+    "address": "127 Humber Avenue, Coventry, CV1 2AU",
+    "location": {
+      "latitude": 52.42441177368164,
+      "longitude": -1.5433413982391357
+    }
+  },
+  "dropoff": {
+    "address": "1 Alma St, Coventry CV1 5QA, UK",
+    "location": {
+      "latitude": 52.4093664,
+      "longitude": -1.4991671
+    }
+  },
+  "route": {
+    "coordinates": []
+  }
+}
+```
+
+Route coordinates are cached by order/status/origin/destination. The cache is
+reused for up to 60 seconds while the courier has moved less than 50 meters. If
+Google Routes fails or the API key is missing, the endpoint still returns
+tracking data with `route.coordinates: []`.
+
+Update fulfilment status, courier location, or ETA:
+
+```bash
+curl -X PATCH http://localhost:4000/api/v1/orders/FM-1720000000000-ABC123/fulfilment/clx_fulfilment_id \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "DROPOFF_STARTED",
+    "courierName": "Alex Rider",
+    "courierPhone": "+447700900123",
+    "courierLatitude": 51.5072,
+    "courierLongitude": -0.1276,
+    "estimatedDropoffAt": "2026-10-06T13:15:00.000Z"
+  }'
+```
+
+The fulfilment response includes provider details, courier details when
+available, current courier coordinates, ETA fields, tracking links, and a
+mobile-friendly status label. Stuart integration can later update this record
+from Stuart webhook callbacks without changing the order list endpoint.
+
+When Stripe payment succeeds, order-service automatically creates the first
+fulfilment record for the paid order using the active `STUART` provider. If
+Stuart credentials and pickup settings are configured, order-service also calls
+Stuart's `POST /v2/jobs` endpoint, saves the returned job id, delivery id, and
+tracking URL, and waits for Stuart webhook events to keep delivery progress in
+sync.
+
+Required Stuart dispatch configuration:
+
+```text
+STUART_API_BASE_URL=https://api.sandbox.stuart.com
+STUART_CLIENT_ID=<your Stuart client id>
+STUART_CLIENT_SECRET=<your Stuart client secret>
+STUART_ACCOUNT_ID=<your Stuart account id>
+STUART_PICKUP_ADDRESS=<restaurant pickup address>
+STUART_PICKUP_LATITUDE=<restaurant latitude>
+STUART_PICKUP_LONGITUDE=<restaurant longitude>
+STUART_PICKUP_COMPANY=FoodMenu
+STUART_PICKUP_FIRST_NAME=FoodMenu
+STUART_PICKUP_LAST_NAME=Kitchen
+STUART_PICKUP_PHONE=<restaurant phone in E.164 format>
+STUART_PICKUP_EMAIL=<restaurant email>
+STUART_PICKUP_DELAY_MINUTES=15
+STUART_PACKAGE_TYPE=medium
+STUART_FALLBACK_CUSTOMER_PHONE=<fallback phone in E.164 format>
+GOOGLE_ROUTES_API_KEY=<server-side Google Routes API key>
+```
+
+The mobile payment intent request must include a complete customer phone number
+and delivery address, because those values are sent to Stuart:
+
+```json
+{
+  "customer": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john@example.com",
+    "phone": "+447700900123"
+  },
+  "order": {
+    "deliveryAddress": {
+      "line1": "23 Ethelbert Road",
+      "city": "London",
+      "postcode": "SW20 8QD",
+      "country": "GB",
+      "latitude": 51.5072,
+      "longitude": -0.1276,
+      "instructions": "3rd floor on the right"
+    }
+  }
+}
+```
+
+Production Stuart base URL:
+
+```text
+STUART_API_BASE_URL=https://api.stuart.com
+```
+
+### Stuart Webhook
+
+```text
+POST /api/v1/webhooks/stuart
+```
+
+Use this URL in the Stuart dashboard after the API is deployed:
+
+```text
+https://your-api-domain.com/api/v1/webhooks/stuart
+```
+
+For local testing, expose the API Gateway with ngrok and use the ngrok URL:
+
+```text
+https://your-ngrok-url.ngrok-free.app/api/v1/webhooks/stuart
+```
+
+If `STUART_WEBHOOK_SECRET` is set, add this custom header in the Stuart webhook
+configuration:
+
+```text
+X-Stuart-Webhook-Secret: <same value as STUART_WEBHOOK_SECRET>
+```
+
+The webhook handler supports Stuart payloads that identify your order through
+`details.package.reference`, `data.clientReference`, or `data.client_reference`.
+It updates the matching `OrderFulfilment` with Stuart delivery ids, tracking
+URLs, driver details, ETA values, courier location, cancellation/failure reason,
+and delivery status.
 
 ### Confirm Payment
 
@@ -276,9 +654,14 @@ Any postcode
 ```bash
 npm run prisma:generate
 npm run prisma:migrate
+npm run prisma:deploy
 npm run prisma:seed
+npm run db:setup
 npm run prisma:studio
 ```
+
+Use `prisma:migrate` for local development when creating new migrations. Use
+`prisma:deploy` or `db:setup` on hosted environments.
 
 Seed data lives in `prisma/seed-data/`. The menu catalog is populated from
 `prisma/seed-data/mobile-catalog.seed.json`, which mirrors the previous React
@@ -293,12 +676,13 @@ foodItems: 10
 foodImages: 50
 deals: 6
 heroSlides: 3
-hotBurgerCombos: 5
+hotCombos: 5
 drinkAddOns: 4
 appetizerOptions: 4
 modifierGroups: 15
 modifierOptions: 54
 defaultModifierGroups: 41
+fulfilmentProviders: 3
 ```
 
 The seed clears and repopulates the menu catalog tables during development. It
@@ -343,3 +727,36 @@ intentionally implements public read APIs and seed data only.
 `libs/proto` is reserved for future proto contracts. When the service boundaries
 are stable, TCP patterns can be replaced with gRPC contracts without changing the
 mobile app-facing HTTP API.
+
+### Deal and hot combo food navigation
+
+`GET /api/v1/menu/deals` and `GET /api/v1/menu/hot-combos` include
+`foodItemId` and a nested `foodItem` using the same shape as the food details
+endpoint. Mobile can open the description screen with `foodItem.id`, or fetch
+`GET /api/v1/menu/foods/:foodItemId`. Unlinked promotions return `foodItem: null`.
+
+Any food referenced by a Deal or HotCombo is excluded from `GET /menu/foods`
+(including category and search results) and bootstrap `foodItems`. This rule
+also applies to inactive or expired promotions; direct food lookup stays available
+for active foods. Use dedicated FoodItem records for promotional products if
+the regular version should remain in the main catalog.
+
+The bootstrap property is now `hotCombos` (previously `hotBurgerCombos`).
+The Prisma model and database table are now `HotCombo`. Apply the checked-in
+migration with `npm run prisma:deploy`, regenerate the Prisma client, and restart
+the services together with the mobile field update.
+
+Catalog seeds accept an optional `foodItemId` on deals and hot combos, pointing
+to an entry in `foods`. Combo seeds include their own food entries at the combo
+price. Each deal also has a dedicated copy of a category-appropriate food, using that
+food’s existing base price. Basket-wide offer thresholds and rewards remain
+promotion metadata; linking an item does not apply checkout discounts.
+The migration preserves current links. Run `npm run prisma:link-promotions`
+after deploying migrations to create and link the dedicated promotion foods
+without resetting the catalog. This command is safe to rerun. The seed command rebuilds the menu catalog, so use it only
+when that reset is intended.
+
+Hot combo food seeds include delivery/pickup fulfillment options and the existing
+burger modifier groups. `npm run prisma:link-promotions` also updates fulfillment
+options on existing combo foods and adds missing modifier/default group links.
+It preserves their prices, descriptions, and any additional modifier links.
