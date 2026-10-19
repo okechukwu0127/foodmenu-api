@@ -4,23 +4,32 @@
   "private": true,
   "description": "Production-ready foodMenu backend API with API Gateway and payment microservice.",
   "scripts": {
-    "start:dev": "concurrently \"npm run start:dev:gateway\" \"npm run start:dev:payment\"",
+    "start:dev": "concurrently \"npm run start:dev:gateway\" \"npm run start:dev:payment\" \"npm run start:dev:menu\" \"npm run start:dev:order\"",
     "start:dev:gateway": "nest start api-gateway --watch",
+    "start:dev:menu": "nest start menu-service --watch",
+    "start:dev:order": "nest start order-service --watch",
     "start:dev:payment": "nest start payment-service --watch",
-    "build": "nest build api-gateway && nest build payment-service",
+    "build": "nest build api-gateway && nest build payment-service && nest build menu-service && nest build order-service",
     "start:gateway": "node dist/apps/api-gateway/main.js",
+    "start:menu": "node dist/apps/menu-service/main.js",
+    "start:order": "node dist/apps/order-service/main.js",
     "start:payment": "node dist/apps/payment-service/main.js",
     "test": "jest",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "lint": "eslint \"{apps,libs,test}/**/*.ts\"",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:seed": "ts-node -r tsconfig-paths/register prisma/seed.ts",
     "prisma:studio": "prisma studio",
+    "db:setup": "npm run prisma:deploy && npm run prisma:seed",
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down",
-    "format": "prettier --write \"{apps,libs,prisma,test}/**/*.{ts,json,md}\""
+    "format": "prettier --write \"{apps,libs,prisma,test}/**/*.{ts,json,md}\"",
+    "prisma:link-promotions": "ts-node -r tsconfig-paths/register prisma/link-promotion-foods.ts"
   },
   "dependencies": {
+    "@googlemaps/polyline-codec": "^1.0.28",
     "@nestjs/common": "^11.1.9",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.9",
@@ -61,13 +70,20 @@
     "typescript": "^5.9.3"
   },
   "jest": {
-    "moduleFileExtensions": ["js", "json", "ts"],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
     "rootDir": ".",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
-    "collectCoverageFrom": ["apps/**/*.(t|j)s", "libs/**/*.(t|j)s"],
+    "collectCoverageFrom": [
+      "apps/**/*.(t|j)s",
+      "libs/**/*.(t|j)s"
+    ],
     "coverageDirectory": "./coverage",
     "testEnvironment": "node",
     "moduleNameMapper": {

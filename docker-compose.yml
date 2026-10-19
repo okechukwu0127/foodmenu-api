@@ -7,7 +7,13 @@ services:
         SERVICE: api-gateway
     command: npm run start:gateway
     env_file: .env
+    environment:
+      MENU_SERVICE_HOST: menu-service
+      ORDER_SERVICE_HOST: order-service
+      PAYMENT_SERVICE_HOST: payment-service
     depends_on:
+      - menu-service
+      - order-service
       - payment-service
     ports:
       - "${API_GATEWAY_PORT:-4000}:${API_GATEWAY_PORT:-4000}"
@@ -20,10 +26,39 @@ services:
         SERVICE: payment-service
     command: npm run start:payment
     env_file: .env
+    environment:
+      ORDER_SERVICE_HOST: order-service
     depends_on:
+      - order-service
       - postgres
     ports:
       - "${PAYMENT_SERVICE_PORT:-4010}:${PAYMENT_SERVICE_PORT:-4010}"
+
+  menu-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: menu-service
+    command: npm run start:menu
+    env_file: .env
+    depends_on:
+      - postgres
+    ports:
+      - "${MENU_SERVICE_PORT:-4020}:${MENU_SERVICE_PORT:-4020}"
+
+  order-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: order-service
+    command: npm run start:order
+    env_file: .env
+    depends_on:
+      - postgres
+    ports:
+      - "${ORDER_SERVICE_PORT:-4030}:${ORDER_SERVICE_PORT:-4030}"
 
   postgres:
     image: postgres:16-alpine

@@ -24,6 +24,46 @@ enum PaymentStatus {
   PARTIALLY_REFUNDED
 }
 
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  CONFIRMED
+  PREPARING
+  READY_FOR_PICKUP
+  COURIER_ASSIGNED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  COMPLETED
+  PAYMENT_FAILED
+  CANCELED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum ModifierSelectionType {
+  SINGLE
+  MULTIPLE
+}
+
+enum DefaultModifierScope {
+  GLOBAL
+  CATEGORY
+  FOOD_ITEM
+}
+
+enum FulfilmentStatus {
+  NOT_REQUESTED
+  QUOTE_REQUESTED
+  CREATED
+  COURIER_ASSIGNED
+  PICKUP_STARTED
+  PICKED_UP
+  DROPOFF_STARTED
+  DELIVERED
+  CANCELED
+  FAILED
+}
+
 model PaymentTransaction {
   id              String          @id @default(cuid())
   paymentIntentId String          @unique
@@ -43,6 +83,445 @@ model PaymentTransaction {
   @@index([orderId])
   @@index([customerId])
   @@index([createdAt])
+}
+
+model Customer {
+  id               String                  @id
+  firstName        String?
+  lastName         String?
+  email            String?
+  phone            String?
+  stripeCustomerId String?                 @unique
+  isDemo           Boolean                 @default(false)
+  metadata         Json?
+  orders           Order[]
+  paymentMethods   CustomerPaymentMethod[]
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  @@index([email])
+  @@index([phone])
+  @@index([isDemo])
+}
+
+model CustomerPaymentMethod {
+  id                    String    @id @default(cuid())
+  customerId            String
+  stripeCustomerId      String
+  stripePaymentMethodId String    @unique
+  alias                 String?
+  holderName            String?
+  brand                 String
+  last4                 String
+  expMonth              Int
+  expYear               Int
+  isDefault             Boolean   @default(false)
+  deletedAt             DateTime?
+  customer              Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([customerId])
+  @@index([stripeCustomerId])
+  @@index([isDefault])
+  @@index([deletedAt])
+}
+
+model Order {
+  id                String                    @id @default(cuid())
+  orderNumber       String                    @unique
+  checkoutSessionId String?                   @unique
+  customerId        String
+  status            OrderStatus               @default(PENDING_PAYMENT)
+  paymentIntentId   String?                   @unique
+  amount            Int
+  currency          String                    @default("gbp")
+  subtotal          Int?
+  deliveryFee       Int?
+  taxAmount         Int?
+  discountAmount    Int?
+  notes             String?
+  deliveryAddress   Json?
+  metadata          Json?
+  customer          Customer                  @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  fulfilments       OrderFulfilment[]
+  items             OrderItem[]
+  routeCaches       OrderTrackingRouteCache[]
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  @@index([customerId])
+  @@index([checkoutSessionId])
+  @@index([status])
+  @@index([paymentIntentId])
+  @@index([createdAt])
+}
+
+model OrderTrackingRouteCache {
+  id          String   @id @default(cuid())
+  orderId     String
+  status      String
+  originLat   Float
+  originLng   Float
+  destLat     Float
+  destLng     Float
+  coordinates Json
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([orderId, status])
+}
+
+model OrderItem {
+  id           String   @id @default(cuid())
+  orderId      String
+  foodItemId   String?
+  categoryId   String?
+  name         String
+  description  String?
+  imageUrl     String?
+  quantity     Int      @default(1)
+  unitAmount   Int
+  totalAmount  Int
+  currency     String   @default("gbp")
+  modifiers    Json?
+  itemSnapshot Json?
+  metadata     Json?
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([foodItemId])
+  @@index([categoryId])
+}
+
+model FulfilmentProvider {
+  id          String            @id @default(cuid())
+  code        String            @unique
+  name        String
+  isActive    Boolean           @default(true)
+  config      Json?
+  fulfilments OrderFulfilment[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([isActive])
+}
+
+model OrderFulfilment {
+  id                   String             @id @default(cuid())
+  orderId              String
+  fulfilmentProviderId String
+  status               FulfilmentStatus   @default(NOT_REQUESTED)
+  providerJobId        String?
+  providerDeliveryId   String?
+  trackingUrl          String?
+  clientTrackingUrl    String?
+  courierName          String?
+  courierPhone         String?
+  courierLatitude      Float?
+  courierLongitude     Float?
+  estimatedPickupAt    DateTime?
+  estimatedDropoffAt   DateTime?
+  pickedUpAt           DateTime?
+  deliveredAt          DateTime?
+  failedReason         String?
+  rawProviderPayload   Json?
+  metadata             Json?
+  order                Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider             FulfilmentProvider @relation(fields: [fulfilmentProviderId], references: [id], onDelete: Restrict)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([orderId])
+  @@index([fulfilmentProviderId])
+  @@index([status])
+  @@index([providerJobId])
+  @@index([providerDeliveryId])
+  @@index([createdAt])
+}
+
+model Category {
+  id                    String                 @id @default(cuid())
+  slug                  String                 @unique
+  nameKey               String
+  name                  Json?
+  icon                  String?
+  displayName           String?
+  imageUrl              String?
+  sortOrder             Int                    @default(0)
+  isActive              Boolean                @default(true)
+  foodItems             FoodItem[]
+  defaultModifierGroups DefaultModifierGroup[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model FoodItem {
+  id                    String                  @id @default(cuid())
+  slug                  String                  @unique
+  categoryId            String
+  name                  String
+  nameData              Json?
+  description           String
+  descriptionData       Json?
+  price                 Int
+  currency              String                  @default("GBP")
+  calories              Int?
+  prepTimeMinutes       Int?
+  rating                Float?
+  isPopular             Boolean                 @default(false)
+  isRecommended         Boolean                 @default(false)
+  isFoodAvailable       Boolean                 @default(true)
+  discountPercent       Int?
+  fulfillmentOptions    Json?
+  sizeOptions           Json?
+  sideOptions           Json?
+  appetizerOptions      Json?
+  tags                  String[]                @default([])
+  isActive              Boolean                 @default(true)
+  sortOrder             Int                     @default(0)
+  category              Category                @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  images                FoodImage[]
+  deals                 Deal[]
+  hotCombos             HotCombo[]
+  modifierGroups        FoodItemModifierGroup[]
+  defaultModifierGroups DefaultModifierGroup[]
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([isPopular])
+  @@index([isRecommended])
+  @@index([isFoodAvailable])
+  @@index([sortOrder])
+}
+
+model FoodImage {
+  id         String   @id @default(cuid())
+  foodItemId String
+  url        String
+  altText    String?
+  sortOrder  Int      @default(0)
+  foodItem   FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+
+  @@index([foodItemId])
+  @@index([sortOrder])
+}
+
+model Deal {
+  id              String    @id @default(cuid())
+  title           String
+  offerType       Json?
+  subtitle        String?
+  offerDesc       Json?
+  offerDelivery   Json?
+  offerCategory   String[]  @default([])
+  description     String?
+  imageUrl        String?
+  discountPercent Int?
+  backgroundColor String?
+  accentColor     String?
+  foodItemId      String?
+  startsAt        DateTime?
+  endsAt          DateTime?
+  isActive        Boolean   @default(true)
+  sortOrder       Int       @default(0)
+  foodItem        FoodItem? @relation(fields: [foodItemId], references: [id], onDelete: SetNull)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([isActive])
+  @@index([startsAt])
+  @@index([endsAt])
+  @@index([sortOrder])
+  @@index([foodItemId])
+}
+
+model HeroSlide {
+  id              String   @id @default(cuid())
+  title           String
+  titleData       Json?
+  subtitle        String?
+  subtitleData    Json?
+  description     String?
+  imageUrl        String
+  discountPercent Int?
+  discountLabel   String?
+  ctaLabel        String?
+  ctaTargetType   String?
+  ctaTargetId     String?
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model HotCombo {
+  id                String    @id @default(cuid())
+  title             String
+  nameData          Json?
+  subtitle          String?
+  descriptionData   Json?
+  items             Json?
+  imageUrl          String?
+  categoryLabel     String?
+  categoryLabelData Json?
+  price             Int?
+  isFeatured        Boolean   @default(false)
+  foodItemId        String?
+  isActive          Boolean   @default(true)
+  sortOrder         Int       @default(0)
+  foodItem          FoodItem? @relation(fields: [foodItemId], references: [id], onDelete: SetNull)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@index([foodItemId])
+}
+
+model DrinkAddOn {
+  id              String   @id @default(cuid())
+  name            String
+  nameData        Json?
+  description     String?
+  descriptionData Json?
+  price           Int
+  imageUrl        String?
+  tag             String?
+  unitLabel       String?
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model ModifierGroup {
+  id                    String                  @id @default(cuid())
+  slug                  String                  @unique
+  title                 String
+  nameData              Json?
+  subtitle              String?
+  descriptionData       Json?
+  selectionType         ModifierSelectionType
+  minSelections         Int                     @default(0)
+  maxSelections         Int?
+  quantityMode          String                  @default("none")
+  isRequired            Boolean                 @default(false)
+  sortOrder             Int                     @default(0)
+  isActive              Boolean                 @default(true)
+  options               ModifierOption[]
+  foodItems             FoodItemModifierGroup[]
+  defaultModifierGroups DefaultModifierGroup[]
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model ModifierOption {
+  id              String        @id @default(cuid())
+  modifierGroupId String
+  name            String
+  nameData        Json?
+  description     String?
+  descriptionData Json?
+  priceOffset     Int           @default(0)
+  calories        Int?
+  imageUrl        String?
+  tag             String?
+  isDefault       Boolean       @default(false)
+  isPopular       Boolean       @default(false)
+  maxQuantity     Int?
+  isActive        Boolean       @default(true)
+  sortOrder       Int           @default(0)
+  modifierGroup   ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([modifierGroupId])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model FoodItemModifierGroup {
+  foodItemId      String
+  modifierGroupId String
+  sortOrder       Int           @default(0)
+  foodItem        FoodItem      @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+  modifierGroup   ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+
+  @@id([foodItemId, modifierGroupId])
+  @@index([foodItemId])
+  @@index([modifierGroupId])
+  @@index([sortOrder])
+}
+
+model DefaultModifierGroup {
+  id              String               @id @default(cuid())
+  modifierGroupId String
+  scope           DefaultModifierScope
+  categoryId      String?
+  foodItemId      String?
+  sortOrder       Int                  @default(0)
+  modifierGroup   ModifierGroup        @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+  category        Category?            @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  foodItem        FoodItem?            @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([modifierGroupId])
+  @@index([scope])
+  @@index([categoryId])
+  @@index([foodItemId])
+  @@index([sortOrder])
+}
+
+model ModifierLabelTranslation {
+  id        String   @id @default(cuid())
+  key       String
+  locale    String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, locale])
+  @@index([locale])
+}
+
+model AppetizerOption {
+  id              String   @id @default(cuid())
+  name            String
+  nameData        Json?
+  description     String?
+  descriptionData Json?
+  price           Int
+  imageUrl        String?
+  calories        Int?
+  tag             String?
+  unitLabel       String?
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
 }
 
 model PaymentRefund {

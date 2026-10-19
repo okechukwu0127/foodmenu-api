@@ -1,6 +1,6 @@
 import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
-import request from "supertest";
+import * as request from "supertest";
 import { of } from "rxjs";
 import { AppModule } from "../apps/api-gateway/src/app.module";
 
@@ -43,10 +43,20 @@ describe("Stripe payment intent (e2e)", () => {
       .post("/api/v1/payments/stripe/payment-intent")
       .send({ amount: 2500, currency: "gbp" })
       .expect(201)
-      .expect({
-        clientSecret: "pi_secret",
-        paymentIntentId: "pi_123",
-        status: "requires_payment_method",
+      .expect(({ body }) => {
+        expect(body).toEqual({
+          data: {
+            clientSecret: "pi_secret",
+            paymentIntentId: "pi_123",
+            status: "requires_payment_method",
+          },
+          message: "Request successful",
+          path: "/api/v1/payments/stripe/payment-intent",
+          status: "success",
+          statusCode: 201,
+          success: true,
+          timestamp: expect.any(String),
+        });
       });
   });
 });
