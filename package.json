@@ -4,12 +4,12 @@
   "private": true,
   "description": "Production-ready foodMenu backend API with API Gateway and payment microservice.",
   "scripts": {
-    "start:dev": "concurrently \"npm run start:dev:gateway\" \"npm run start:dev:payment\" \"npm run start:dev:menu\" \"npm run start:dev:order\"",
+    "start:dev": "concurrently \"npm run start:dev:gateway\" \"npm run start:dev:payment\" \"npm run start:dev:menu\" \"npm run start:dev:order\" \"npm run start:dev:identity\"",
     "start:dev:gateway": "nest start api-gateway --watch",
     "start:dev:menu": "nest start menu-service --watch",
     "start:dev:order": "nest start order-service --watch",
     "start:dev:payment": "nest start payment-service --watch",
-    "build": "nest build api-gateway && nest build payment-service && nest build menu-service && nest build order-service",
+    "build": "nest build api-gateway && nest build payment-service && nest build menu-service && nest build order-service && nest build identity-service",
     "start:gateway": "node dist/apps/api-gateway/main.js",
     "start:menu": "node dist/apps/menu-service/main.js",
     "start:order": "node dist/apps/order-service/main.js",
@@ -26,7 +26,12 @@
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down",
     "format": "prettier --write \"{apps,libs,prisma,test}/**/*.{ts,json,md}\"",
-    "prisma:link-promotions": "ts-node -r tsconfig-paths/register prisma/link-promotion-foods.ts"
+    "prisma:link-promotions": "ts-node -r tsconfig-paths/register prisma/link-promotion-foods.ts",
+    "start:dev:identity": "nest start identity-service --watch",
+    "start:identity": "node dist/apps/identity-service/main.js",
+    "test:addresses": "node scripts/test-addresses.cjs",
+    "test:email-verification": "node scripts/test-email-verification.cjs",
+    "test:profile-photos": "node scripts/test-profile-photos.cjs"
   },
   "dependencies": {
     "@googlemaps/polyline-codec": "^1.0.28",
@@ -40,10 +45,14 @@
     "@prisma/client": "^6.18.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "google-auth-library": "^11.3.1",
     "helmet": "^8.1.0",
     "joi": "^18.0.1",
+    "multer": "^2.5.0",
+    "nodemailer": "^10.2.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "sharp": "^0.35.5",
     "stripe": "^19.1.0"
   },
   "devDependencies": {
@@ -52,7 +61,9 @@
     "@nestjs/testing": "^11.1.9",
     "@types/express": "^5.0.3",
     "@types/jest": "^30.0.0",
+    "@types/multer": "^2.3.0",
     "@types/node": "^24.8.1",
+    "@types/nodemailer": "^8.0.2",
     "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^8.46.1",
     "@typescript-eslint/parser": "^8.46.1",

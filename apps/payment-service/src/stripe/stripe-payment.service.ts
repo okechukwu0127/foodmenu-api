@@ -83,9 +83,8 @@ export class StripePaymentService {
           ? { idempotencyKey: `payment-intent:${checkoutSessionId}` }
           : undefined,
       );
-      const ephemeralKey = await this.createCustomerEphemeralKey(
-        stripeCustomerId,
-      );
+      const ephemeralKey =
+        await this.createCustomerEphemeralKey(stripeCustomerId);
 
       await this.prisma.paymentTransaction.upsert({
         create: {
@@ -189,8 +188,13 @@ export class StripePaymentService {
         );
       }
 
-      if (paymentMethod.customer && paymentMethod.customer !== stripeCustomerId) {
-        throw new Error("Payment method belongs to a different Stripe customer.");
+      if (
+        paymentMethod.customer &&
+        paymentMethod.customer !== stripeCustomerId
+      ) {
+        throw new Error(
+          "Payment method belongs to a different Stripe customer.",
+        );
       }
 
       if (!paymentMethod.card) {
@@ -201,8 +205,8 @@ export class StripePaymentService {
         await this.clearDefaultPaymentMethods(payload.customerId);
       }
 
-      const savedPaymentMethod =
-        await this.prisma.customerPaymentMethod.upsert({
+      const savedPaymentMethod = await this.prisma.customerPaymentMethod.upsert(
+        {
           create: {
             alias: payload.alias,
             brand: paymentMethod.card.brand,
@@ -229,7 +233,8 @@ export class StripePaymentService {
           where: {
             stripePaymentMethodId: paymentMethod.id,
           },
-        });
+        },
+      );
 
       return this.mapCustomerPaymentMethod(savedPaymentMethod);
     } catch (error) {
@@ -397,14 +402,14 @@ export class StripePaymentService {
       const webhookSecret = this.configService.get<string>(
         "STRIPE_WEBHOOK_SECRET",
       );
-      const event =
-        webhookSecret && payload.stripeSignature
-          ? this.stripe.webhooks.constructEvent(
-              payload.rawBody,
-              payload.stripeSignature,
-              webhookSecret,
-            )
-          : (JSON.parse(payload.rawBody) as Stripe.Event);
+      if (!webhookSecret || !payload.stripeSignature) {
+        throw new Error("Stripe webhook secret and signature are required.");
+      }
+      const event = this.stripe.webhooks.constructEvent(
+        payload.rawBody,
+        payload.stripeSignature,
+        webhookSecret,
+      );
 
       if (
         event.type === "payment_intent.succeeded" ||
@@ -473,7 +478,11 @@ export class StripePaymentService {
     paymentStatus: PaymentStatus,
     orderId?: string,
   ) {
-    await this.updateOrderPaymentStatus(paymentIntentId, paymentStatus, orderId);
+    await this.updateOrderPaymentStatus(
+      paymentIntentId,
+      paymentStatus,
+      orderId,
+    );
   }
 
   private async updateOrderPaymentStatus(
@@ -514,7 +523,10 @@ export class StripePaymentService {
       where: { id: customerId },
     });
 
-    if (existingCustomer?.stripeCustomerId) {
+    if (!existingCustomer) {
+      throw new Error("Customer profile was not found.");
+    }
+    if (existingCustomer.stripeCustomerId) {
       return existingCustomer.stripeCustomerId;
     }
 
@@ -532,22 +544,9 @@ export class StripePaymentService {
       phone: customer?.phone ?? existingCustomer?.phone ?? undefined,
     });
 
-    await this.prisma.customer.upsert({
-      create: {
-        email: customer?.email,
-        firstName: customer?.firstName,
-        id: customerId,
-        lastName: customer?.lastName,
-        phone: customer?.phone,
-        stripeCustomerId: stripeCustomer.id,
-      },
-      update: {
-        ...(customer?.email ? { email: customer.email } : {}),
-        ...(customer?.firstName ? { firstName: customer.firstName } : {}),
-        ...(customer?.lastName ? { lastName: customer.lastName } : {}),
-        ...(customer?.phone ? { phone: customer.phone } : {}),
-        stripeCustomerId: stripeCustomer.id,
-      },
+    // Payment owns the Stripe reference; identity owns customer profile fields.
+    await this.prisma.customer.update({
+      data: { stripeCustomerId: stripeCustomer.id },
       where: { id: customerId },
     });
 
@@ -568,7 +567,10 @@ export class StripePaymentService {
     const paymentMethod = await this.prisma.customerPaymentMethod.findFirst({
       where: {
         deletedAt: null,
-        OR: [{ id: paymentMethodId }, { stripePaymentMethodId: paymentMethodId }],
+        OR: [
+          { id: paymentMethodId },
+          { stripePaymentMethodId: paymentMethodId },
+        ],
       },
     });
 

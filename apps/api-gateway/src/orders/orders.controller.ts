@@ -7,10 +7,12 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import {
   ApiOperation,
+  ApiBearerAuth,
   ApiParam,
   ApiQuery,
   ApiResponse,
@@ -26,12 +28,18 @@ import {
 } from "@app/dto";
 import { AppError } from "@app/errors";
 
+import { AuthGuard, CurrentLogin, Login } from "../auth/auth.guard";
+import { CustomerAccessService } from "../auth/customer-access.service";
+
+@UseGuards(AuthGuard)
+@ApiBearerAuth()
 @ApiTags("Orders")
 @Controller("orders")
 export class OrdersController {
   constructor(
     @Inject("ORDER_SERVICE")
     private readonly orderClient: ClientProxy,
+    private readonly access: CustomerAccessService,
   ) {}
 
   @Get()
@@ -44,8 +52,14 @@ export class OrdersController {
   })
   @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiResponse({ status: 200, schema: { type: "object" } })
-  getCustomerOrders(@Query() query: OrdersQueryDto) {
-    return this.send(ORDER_PATTERNS.GET_CUSTOMER_ORDERS, query);
+  getCustomerOrders(
+    @CurrentLogin() login: Login,
+    @Query() query: OrdersQueryDto,
+  ) {
+    return this.send(ORDER_PATTERNS.GET_CUSTOMER_ORDERS, {
+      ...query,
+      customerId: login.customerId,
+    });
   }
 
   @Get("fulfilment/providers")
@@ -59,10 +73,12 @@ export class OrdersController {
   @ApiOperation({ summary: "Create a fulfilment record for an order" })
   @ApiParam({ name: "orderId", example: "FM-1720000000000-ABC123" })
   @ApiResponse({ status: 201, schema: { type: "object" } })
-  createOrderFulfilment(
+  async createOrderFulfilment(
+    @CurrentLogin() login: Login,
     @Param() params: OrderIdParamDto,
     @Body() dto: CreateOrderFulfilmentDto,
   ) {
+    await this.access.order(login.customerId, params.orderId);
     return this.send(ORDER_PATTERNS.CREATE_ORDER_FULFILMENT, {
       ...dto,
       orderId: params.orderId,
@@ -73,7 +89,11 @@ export class OrdersController {
   @ApiOperation({ summary: "Get fulfilment tracking for an order" })
   @ApiParam({ name: "orderId", example: "FM-1720000000000-ABC123" })
   @ApiResponse({ status: 200, schema: { type: "object" } })
-  getOrderTracking(@Param() params: OrderIdParamDto) {
+  async getOrderTracking(
+    @CurrentLogin() login: Login,
+    @Param() params: OrderIdParamDto,
+  ) {
+    await this.access.order(login.customerId, params.orderId);
     return this.send(ORDER_PATTERNS.GET_ORDER_TRACKING, params.orderId);
   }
 
@@ -82,11 +102,13 @@ export class OrdersController {
   @ApiParam({ name: "orderId", example: "FM-1720000000000-ABC123" })
   @ApiParam({ name: "fulfilmentId", example: "clx_fulfilment_id" })
   @ApiResponse({ status: 200, schema: { type: "object" } })
-  updateOrderFulfilment(
+  async updateOrderFulfilment(
+    @CurrentLogin() login: Login,
     @Param("orderId") orderId: string,
     @Param("fulfilmentId") fulfilmentId: string,
     @Body() dto: UpdateOrderFulfilmentDto,
   ) {
+    await this.access.fulfilment(login.customerId, orderId, fulfilmentId);
     return this.send(ORDER_PATTERNS.UPDATE_ORDER_FULFILMENT, {
       ...dto,
       fulfilmentId,
@@ -98,25 +120,31 @@ export class OrdersController {
   @ApiOperation({ summary: "Get order details by id or order number" })
   @ApiParam({ name: "orderId", example: "FM-1720000000000-ABC123" })
   @ApiResponse({ status: 200, schema: { type: "object" } })
-  getOrderDetails(@Param() params: OrderIdParamDto) {
+  async getOrderDetails(
+    @CurrentLogin() login: Login,
+    @Param() params: OrderIdParamDto,
+  ) {
+    await this.access.order(login.customerId, params.orderId);
     return this.send(ORDER_PATTERNS.GET_ORDER_DETAILS, params.orderId);
   }
 
   private send<TPayload>(pattern: string, payload: TPayload) {
     return firstValueFrom(
-      this.orderClient.send(pattern, payload).pipe(
-        catchError((error: { code?: string; message?: string }) =>
-          throwError(
-            () =>
-              new AppError(
-                error.code ?? "ORDER_SERVICE_ERROR",
-                error.message ?? "Order service request failed",
-                502,
-                error,
-              ),
+      this.orderClient
+        .send(pattern, payload)
+        .pipe(
+          catchError((error: { code?: string; message?: string }) =>
+            throwError(
+              () =>
+                new AppError(
+                  error.code ?? "ORDER_SERVICE_ERROR",
+                  error.message ?? "Order service request failed",
+                  502,
+                  error,
+                ),
+            ),
           ),
         ),
-      ),
     );
   }
 }

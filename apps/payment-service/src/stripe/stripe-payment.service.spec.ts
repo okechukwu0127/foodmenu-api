@@ -8,7 +8,7 @@ describe("StripePaymentService", () => {
   const prisma = {
     customer: {
       findUnique: jest.fn(),
-      upsert: jest.fn(),
+      update: jest.fn(),
     },
     paymentTransaction: {
       upsert: jest.fn(),
@@ -42,6 +42,10 @@ describe("StripePaymentService", () => {
   });
 
   it("creates a payment intent and stores the transaction", async () => {
+    prisma.customer.findUnique.mockResolvedValue({
+      id: "customer_123",
+      email: "john@example.com",
+    });
     const service = await createService();
     const createMock = jest
       .spyOn((service as any).stripe.paymentIntents, "create")
@@ -77,6 +81,10 @@ describe("StripePaymentService", () => {
       { idempotencyKey: "payment-intent:order_123" },
     );
     expect(prisma.paymentTransaction.upsert).toHaveBeenCalled();
+    expect(prisma.customer.update).toHaveBeenCalledWith({
+      where: { id: "customer_123" },
+      data: { stripeCustomerId: "cus_123" },
+    });
     expect(result).toEqual({
       clientSecret: "pi_secret",
       checkoutSessionId: "order_123",
@@ -88,6 +96,20 @@ describe("StripePaymentService", () => {
       paymentIntentId: "pi_123",
       status: "requires_payment_method",
     });
+  });
+
+  it("rejects unsigned Stripe webhook events without changing payment state", async () => {
+    const service = await createService();
+    await expect(
+      service.handleStripeWebhook({
+        rawBody: JSON.stringify({
+          type: "payment_intent.succeeded",
+          data: { object: { id: "pi_fake" } },
+        }),
+      }),
+    ).rejects.toThrow("Stripe webhook secret and signature are required.");
+    expect(prisma.paymentTransaction.upsert).not.toHaveBeenCalled();
+    expect(orderClient.send).not.toHaveBeenCalled();
   });
 
   const createService = async () => {
@@ -110,8 +132,7 @@ describe("StripePaymentService", () => {
           useValue: orderClient,
         },
       ],
-    })
-      .compile();
+    }).compile();
 
     return moduleRef.get(StripePaymentService);
   };

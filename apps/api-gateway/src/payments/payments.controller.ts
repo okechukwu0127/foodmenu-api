@@ -8,10 +8,12 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import {
   ApiBody,
+  ApiBearerAuth,
   ApiOperation,
   ApiParam,
   ApiResponse,
@@ -38,43 +40,73 @@ import {
   UpdatePaymentMethodDto,
 } from "@app/dto";
 
+import { AuthGuard, CurrentLogin, Login } from "../auth/auth.guard";
+import { CustomerAccessService } from "../auth/customer-access.service";
+
+@UseGuards(AuthGuard)
+@ApiBearerAuth()
 @ApiTags("Stripe Payments")
 @Controller("payments/stripe")
 export class PaymentsController {
   constructor(
     @Inject("PAYMENT_SERVICE")
     private readonly paymentClient: ClientProxy,
+    private readonly access: CustomerAccessService,
   ) {}
 
   @Post("payment-intent")
   @ApiOperation({ summary: "Create a Stripe payment intent" })
   @ApiBody({ type: CreatePaymentIntentDto })
   @ApiResponse({ status: 201, type: CreatePaymentIntentResponseDto })
-  createPaymentIntent(@Body() dto: CreatePaymentIntentDto) {
-    return this.send(PAYMENT_PATTERNS.CREATE_PAYMENT_INTENT, dto);
+  async createPaymentIntent(
+    @CurrentLogin() login: Login,
+    @Body() dto: CreatePaymentIntentDto,
+  ) {
+    return this.send(
+      PAYMENT_PATTERNS.CREATE_PAYMENT_INTENT,
+      await this.access.checkout(login, dto),
+    );
   }
 
   @Post("setup-intent")
   @ApiOperation({ summary: "Create a Stripe setup intent for saving a card" })
   @ApiBody({ type: CreateSetupIntentDto })
   @ApiResponse({ status: 201, type: CreateSetupIntentResponseDto })
-  createSetupIntent(@Body() dto: CreateSetupIntentDto) {
-    return this.send(PAYMENT_PATTERNS.CREATE_SETUP_INTENT, dto);
+  createSetupIntent(
+    @CurrentLogin() login: Login,
+    @Body() dto: CreateSetupIntentDto,
+  ) {
+    return this.send(PAYMENT_PATTERNS.CREATE_SETUP_INTENT, {
+      ...dto,
+      customerId: login.customerId,
+    });
   }
 
   @Get("payment-methods")
   @ApiOperation({ summary: "List saved Stripe payment methods" })
   @ApiResponse({ status: 200, type: [CustomerPaymentMethodResponseDto] })
-  listPaymentMethods(@Query() query: PaymentMethodsQueryDto) {
-    return this.send(PAYMENT_PATTERNS.LIST_PAYMENT_METHODS, query);
+  listPaymentMethods(
+    @CurrentLogin() login: Login,
+    @Query() query: PaymentMethodsQueryDto,
+  ) {
+    return this.send(PAYMENT_PATTERNS.LIST_PAYMENT_METHODS, {
+      ...query,
+      customerId: login.customerId,
+    });
   }
 
   @Post("payment-methods")
   @ApiOperation({ summary: "Save Stripe payment method metadata" })
   @ApiBody({ type: SavePaymentMethodDto })
   @ApiResponse({ status: 201, type: CustomerPaymentMethodResponseDto })
-  savePaymentMethod(@Body() dto: SavePaymentMethodDto) {
-    return this.send(PAYMENT_PATTERNS.SAVE_PAYMENT_METHOD, dto);
+  savePaymentMethod(
+    @CurrentLogin() login: Login,
+    @Body() dto: SavePaymentMethodDto,
+  ) {
+    return this.send(PAYMENT_PATTERNS.SAVE_PAYMENT_METHOD, {
+      ...dto,
+      customerId: login.customerId,
+    });
   }
 
   @Patch("payment-methods/:paymentMethodId")
@@ -82,10 +114,12 @@ export class PaymentsController {
   @ApiParam({ name: "paymentMethodId", example: "pm_123" })
   @ApiBody({ type: UpdatePaymentMethodDto })
   @ApiResponse({ status: 200, type: CustomerPaymentMethodResponseDto })
-  updatePaymentMethod(
+  async updatePaymentMethod(
+    @CurrentLogin() login: Login,
     @Param() params: PaymentMethodParamDto,
     @Body() dto: UpdatePaymentMethodDto,
   ) {
+    await this.access.paymentMethod(login.customerId, params.paymentMethodId);
     return this.send(PAYMENT_PATTERNS.UPDATE_PAYMENT_METHOD, {
       ...dto,
       paymentMethodId: params.paymentMethodId,
@@ -96,7 +130,11 @@ export class PaymentsController {
   @ApiOperation({ summary: "Detach and delete a saved Stripe payment method" })
   @ApiParam({ name: "paymentMethodId", example: "pm_123" })
   @ApiResponse({ status: 200, schema: { example: { deleted: true } } })
-  deletePaymentMethod(@Param() params: PaymentMethodParamDto) {
+  async deletePaymentMethod(
+    @CurrentLogin() login: Login,
+    @Param() params: PaymentMethodParamDto,
+  ) {
+    await this.access.paymentMethod(login.customerId, params.paymentMethodId);
     return this.send(
       PAYMENT_PATTERNS.DELETE_PAYMENT_METHOD,
       params.paymentMethodId,
@@ -107,7 +145,11 @@ export class PaymentsController {
   @ApiOperation({ summary: "Confirm or sync a Stripe payment intent" })
   @ApiBody({ type: ConfirmPaymentDto })
   @ApiResponse({ status: 201, type: ConfirmPaymentResponseDto })
-  confirmPayment(@Body() dto: ConfirmPaymentDto) {
+  async confirmPayment(
+    @CurrentLogin() login: Login,
+    @Body() dto: ConfirmPaymentDto,
+  ) {
+    await this.access.payment(login.customerId, dto.paymentIntentId);
     return this.send(PAYMENT_PATTERNS.CONFIRM_PAYMENT, dto);
   }
 
@@ -115,7 +157,11 @@ export class PaymentsController {
   @ApiOperation({ summary: "Get latest Stripe payment status" })
   @ApiParam({ name: "paymentIntentId", example: "pi_123" })
   @ApiResponse({ status: 200, type: PaymentStatusResponseDto })
-  getPaymentStatus(@Param() params: PaymentStatusParamDto) {
+  async getPaymentStatus(
+    @CurrentLogin() login: Login,
+    @Param() params: PaymentStatusParamDto,
+  ) {
+    await this.access.payment(login.customerId, params.paymentIntentId);
     return this.send(
       PAYMENT_PATTERNS.GET_PAYMENT_STATUS,
       params.paymentIntentId,
@@ -126,25 +172,31 @@ export class PaymentsController {
   @ApiOperation({ summary: "Refund a Stripe payment intent" })
   @ApiBody({ type: RefundPaymentDto })
   @ApiResponse({ status: 201, type: RefundPaymentResponseDto })
-  refundPayment(@Body() dto: RefundPaymentDto) {
+  async refundPayment(
+    @CurrentLogin() login: Login,
+    @Body() dto: RefundPaymentDto,
+  ) {
+    await this.access.payment(login.customerId, dto.paymentIntentId);
     return this.send(PAYMENT_PATTERNS.REFUND_PAYMENT, dto);
   }
 
   private send<TPayload>(pattern: string, payload: TPayload) {
     return firstValueFrom(
-      this.paymentClient.send(pattern, payload).pipe(
-        catchError((error: { code?: string; message?: string }) =>
-          throwError(
-            () =>
-              new AppError(
-                error.code ?? "PAYMENT_SERVICE_ERROR",
-                error.message ?? "Payment service request failed",
-                502,
-                error,
-              ),
+      this.paymentClient
+        .send(pattern, payload)
+        .pipe(
+          catchError((error: { code?: string; message?: string }) =>
+            throwError(
+              () =>
+                new AppError(
+                  error.code ?? "PAYMENT_SERVICE_ERROR",
+                  error.message ?? "Payment service request failed",
+                  502,
+                  error,
+                ),
+            ),
           ),
         ),
-      ),
     );
   }
 }

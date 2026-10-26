@@ -31,7 +31,14 @@ export class StuartWebhookController {
       "",
     );
 
-    if (expectedSecret && webhookSecret !== expectedSecret) {
+    if (!expectedSecret) {
+      throw new AppError(
+        "STUART_WEBHOOK_NOT_CONFIGURED",
+        "Stuart webhook secret is not configured.",
+        503,
+      );
+    }
+    if (webhookSecret !== expectedSecret) {
       throw new AppError(
         "STUART_WEBHOOK_UNAUTHORIZED",
         "Invalid Stuart webhook secret.",
@@ -40,19 +47,21 @@ export class StuartWebhookController {
     }
 
     return firstValueFrom(
-      this.orderClient.send(ORDER_PATTERNS.HANDLE_STUART_WEBHOOK, request.body).pipe(
-        catchError((error: { code?: string; message?: string }) =>
-          throwError(
-            () =>
-              new AppError(
-                error.code ?? "STUART_WEBHOOK_ERROR",
-                error.message ?? "Stuart webhook handling failed",
-                502,
-                error,
-              ),
+      this.orderClient
+        .send(ORDER_PATTERNS.HANDLE_STUART_WEBHOOK, request.body)
+        .pipe(
+          catchError((error: { code?: string; message?: string }) =>
+            throwError(
+              () =>
+                new AppError(
+                  error.code ?? "STUART_WEBHOOK_ERROR",
+                  error.message ?? "Stuart webhook handling failed",
+                  502,
+                  error,
+                ),
+            ),
           ),
         ),
-      ),
     );
   }
 }

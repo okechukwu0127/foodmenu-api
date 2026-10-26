@@ -1,10 +1,22 @@
+# Mobile authentication
+
+Email/password and Google signup/signin are implemented. Checkout, payment and order routes now require a FoodMenu bearer token. Follow the [step-by-step mobile authentication setup](docs/mobile-authentication.md) for Google Cloud configuration, API examples, migrations and app integration.
+
+Customer address APIs are documented in the [saved addresses guide](docs/customer-addresses.md), including the database migration and Expo offline queue integration changes.
+
+Form signup now requires [email activation](docs/email-verification.md). Configure SMTP to send codes; signin on an inactive account returns `403 ACCOUNT_NOT_ACTIVATED`.
+
+Authenticated [profile photo uploads](docs/profile-photos.md) are available at `POST /api/v1/auth/me/photo`; profile queries return the uploaded image URL.
+
+The [Password Manager API](docs/password-management.md) is available at `POST /api/v1/auth/change-password`; it verifies the current password and revokes all sessions after a successful change.
+
 # foodMenu API
 
 Production-ready NestJS monorepo backend for the foodMenu mobile app.
 
 The backend currently implements Stripe payments, order persistence, and the
 public Menu Catalog API, while keeping the project ready for future services
-such as users, wallet, and notifications.
+such as wallet and notifications. Authentication and profile management run in the dedicated [identity service](docs/identity-service.md).
 
 ## Architecture
 
@@ -12,7 +24,8 @@ such as users, wallet, and notifications.
 apps/
   api-gateway/       Public HTTP API consumed by the mobile app
   menu-service/      Public read menu/catalog data service
-  order-service/     Customer, order, order item, and order status service
+  order-service/     Order, order item, delivery and order status service
+  identity-service/  Authentication, sessions and customer profiles
   payment-service/   Stripe + payment persistence microservice
 
 libs/
@@ -29,9 +42,9 @@ prisma/
   seed-data/         Full mobile catalog seed snapshot and seed helpers
 ```
 
-The API Gateway communicates with payment-service, order-service, and
+The API Gateway communicates with identity-service, payment-service, order-service, and
 menu-service through Nest TCP transport. Stripe SDK usage stays isolated inside
-payment-service, order-service owns customers/orders/order items, and
+payment-service, identity-service owns authentication/customer profiles, order-service owns orders/order items, and
 menu-service owns catalog database reads.
 
 ## Local Setup
@@ -78,6 +91,8 @@ Services:
   - npm run start:dev:menu
 - Order service TCP: `localhost:4030`
   - npm run start:dev:order
+- Identity service TCP: `localhost:4050` (private network in Docker)
+  - npm run start:dev:identity
 - Swagger: `http://localhost:4000/api/docs`
 - OpenAPI JSON: `http://localhost:4000/api/docs-json`
 - Postgres: `localhost:5432`
@@ -103,6 +118,9 @@ MENU_SERVICE_HOST
 MENU_SERVICE_PORT
 ORDER_SERVICE_HOST
 ORDER_SERVICE_PORT
+IDENTITY_SERVICE_HOST
+IDENTITY_SERVICE_PORT
+IDENTITY_SERVICE_TIMEOUT_MS
 DATABASE_URL
 POSTGRES_USER
 POSTGRES_PASSWORD

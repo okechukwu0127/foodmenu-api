@@ -35,3 +35,21 @@ export const MENU_PATTERNS = {
   GET_MODIFIER_GROUPS: "menu.getModifierGroups",
   GET_MODIFIER_LABEL_TRANSLATIONS: "menu.getModifierLabelTranslations",
 } as const;
+
+export const IDENTITY_PATTERNS = {
+  CHANGE_PASSWORD: "identity.changePassword",
+  LIST_ADDRESSES: "identity.addresses.list",
+  PUT_ADDRESS: "identity.addresses.put",
+  DELETE_ADDRESS: "identity.addresses.delete",
+  SET_DEFAULT_ADDRESS: "identity.addresses.setDefault",
+  VERIFY_EMAIL: "identity.verifyEmail",
+  RESEND_VERIFICATION: "identity.resendVerification",
+  SIGNUP: "identity.signup",
+  SIGNIN: "identity.signin",
+  GOOGLE_SIGNIN: "identity.googleSignin",
+  LINK_GOOGLE: "identity.linkGoogle",
+  AUTHENTICATE: "identity.authenticate",
+  LOGOUT: "identity.logout",
+  UPLOAD_PROFILE_PHOTO: "identity.uploadProfilePhoto",
+  UPDATE_PROFILE: "identity.updateProfile",
+} as const;

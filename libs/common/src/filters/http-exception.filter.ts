@@ -4,16 +4,17 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
-  Logger,
 } from "@nestjs/common";
 import type { Response } from "express";
 import type { Request } from "express";
 import { AppError } from "@app/errors";
+import {
+  serverErrorDetails,
+  writeStructuredLog,
+} from "../logging/structured-log";
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(HttpExceptionFilter.name);
-
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const request = ctx.getRequest<Request>();
@@ -38,7 +39,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
           : "REQUEST_FAILED";
 
     if (statusCode >= 500) {
-      this.logger.error(message, exception instanceof Error ? exception.stack : undefined);
+      writeStructuredLog("error", "HttpExceptionFilter", {
+        event: "server_error",
+        requestId: response.getHeader("X-Request-Id"),
+        method: request.method,
+        path: request.route?.path ?? "[unmatched request]",
+        statusCode,
+        code,
+        message: "Server request failed",
+        error: serverErrorDetails(exception),
+      });
     }
 
     response.status(statusCode).json({
@@ -58,11 +68,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
   private getHttpExceptionMessage(exception: HttpException) {
     const response = exception.getResponse();
     if (typeof response === "string") return response;
-    if (
-      response &&
-      typeof response === "object" &&
-      "message" in response
-    ) {
+    if (response && typeof response === "object" && "message" in response) {
       const message = (response as { message: string | string[] }).message;
       return Array.isArray(message) ? message.join(", ") : message;
     }
