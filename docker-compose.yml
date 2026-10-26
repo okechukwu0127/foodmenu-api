@@ -8,15 +8,38 @@ services:
     command: npm run start:gateway
     env_file: .env
     environment:
+      PROFILE_PHOTO_STORAGE_DIR: /app/uploads/profile-photos
+      IDENTITY_SERVICE_HOST: identity-service
       MENU_SERVICE_HOST: menu-service
       ORDER_SERVICE_HOST: order-service
       PAYMENT_SERVICE_HOST: payment-service
     depends_on:
+      - identity-service
       - menu-service
       - order-service
       - payment-service
+    volumes:
+      - foodmenu_profile_photos:/app/uploads/profile-photos:ro
     ports:
       - "${API_GATEWAY_PORT:-4000}:${API_GATEWAY_PORT:-4000}"
+
+  identity-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: identity-service
+    command: npm run start:identity
+    env_file: .env
+    environment:
+      PROFILE_PHOTO_STORAGE_DIR: /app/uploads/profile-photos
+      IDENTITY_SERVICE_HOST: 0.0.0.0
+    depends_on:
+      - postgres
+    volumes:
+      - foodmenu_profile_photos:/app/uploads/profile-photos
+    expose:
+      - "${IDENTITY_SERVICE_PORT:-4050}"
 
   payment-service:
     build:
@@ -31,8 +54,8 @@ services:
     depends_on:
       - order-service
       - postgres
-    ports:
-      - "${PAYMENT_SERVICE_PORT:-4010}:${PAYMENT_SERVICE_PORT:-4010}"
+    expose:
+      - "${PAYMENT_SERVICE_PORT:-4010}"
 
   menu-service:
     build:
@@ -44,8 +67,8 @@ services:
     env_file: .env
     depends_on:
       - postgres
-    ports:
-      - "${MENU_SERVICE_PORT:-4020}:${MENU_SERVICE_PORT:-4020}"
+    expose:
+      - "${MENU_SERVICE_PORT:-4020}"
 
   order-service:
     build:
@@ -57,8 +80,8 @@ services:
     env_file: .env
     depends_on:
       - postgres
-    ports:
-      - "${ORDER_SERVICE_PORT:-4030}:${ORDER_SERVICE_PORT:-4030}"
+    expose:
+      - "${ORDER_SERVICE_PORT:-4030}"
 
   postgres:
     image: postgres:16-alpine
@@ -86,5 +109,6 @@ services:
   #    - foodmenu_pgadmin_data:/var/lib/pgadmin
 
 volumes:
+  foodmenu_profile_photos:
   foodmenu_postgres_data:
   #foodmenu_pgadmin_data:

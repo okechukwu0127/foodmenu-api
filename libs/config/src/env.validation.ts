@@ -1,6 +1,34 @@
 import * as Joi from "joi";
 
 export const envValidationSchema = Joi.object({
+  HTTP_LOG_HEADERS: Joi.boolean().default(false),
+  HTTP_LOG_BODY: Joi.boolean().default(false),
+  EMAIL_VERIFICATION_TTL_SECONDS: Joi.number()
+    .valid(7200, 14400)
+    .default(14400),
+  EMAIL_VERIFICATION_SECRET: Joi.string().min(32).allow("").optional(),
+  SMTP_HOST: Joi.string().allow("").optional(),
+  SMTP_PORT: Joi.number().port().default(587),
+  SMTP_SECURE: Joi.boolean().default(false),
+  SMTP_USER: Joi.string().allow("").optional(),
+  SMTP_PASSWORD: Joi.string().allow("").optional(),
+  SMTP_FROM: Joi.string().email().allow("").optional(),
+  PROFILE_PHOTO_STORAGE_DIR: Joi.string()
+    .min(1)
+    .default("uploads/profile-photos"),
+  GOOGLE_CLIENT_IDS: Joi.string().allow("").default(""),
+  AUTH_SESSION_TTL_SECONDS: Joi.number()
+    .integer()
+    .min(60)
+    .max(2592000)
+    .default(604800),
+  IDENTITY_SERVICE_HOST: Joi.string().default("127.0.0.1"),
+  IDENTITY_SERVICE_PORT: Joi.number().port().default(4050),
+  IDENTITY_SERVICE_TIMEOUT_MS: Joi.number()
+    .integer()
+    .min(100)
+    .max(120000)
+    .default(10000),
   API_GATEWAY_PORT: Joi.number().default(4000),
   DATABASE_URL: Joi.string().required(),
   FOODMENU_APP_URL: Joi.string().default("*"),
@@ -42,3 +70,28 @@ export const envValidationSchema = Joi.object({
   STUART_PICKUP_PHONE: Joi.string().allow("").optional(),
   STUART_WEBHOOK_SECRET: Joi.string().allow("").optional(),
 });
+
+// Identity validates only its own settings; it does not need payment/provider secrets.
+export const identityEnvValidationSchema = Joi.object(
+  Object.fromEntries(
+    [
+      "EMAIL_VERIFICATION_TTL_SECONDS",
+      "EMAIL_VERIFICATION_SECRET",
+      "SMTP_HOST",
+      "SMTP_PORT",
+      "SMTP_SECURE",
+      "SMTP_USER",
+      "SMTP_PASSWORD",
+      "SMTP_FROM",
+      "PROFILE_PHOTO_STORAGE_DIR",
+      "PUBLIC_ASSET_BASE_URL",
+      "DATABASE_URL",
+      "NODE_ENV",
+      "GOOGLE_CLIENT_IDS",
+      "AUTH_SESSION_TTL_SECONDS",
+      "IDENTITY_SERVICE_HOST",
+      "IDENTITY_SERVICE_PORT",
+      "IDENTITY_SERVICE_TIMEOUT_MS",
+    ].map((key) => [key, envValidationSchema.extract(key)]),
+  ),
+);

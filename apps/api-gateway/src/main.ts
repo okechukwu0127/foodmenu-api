@@ -8,8 +8,9 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import {
   createValidationPipe,
   HttpExceptionFilter,
-  LoggingInterceptor,
+  createRequestLoggingMiddleware,
 } from "@app/common";
+import { mountProfilePhotoAssets } from "./auth/profile-photo-assets";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
@@ -18,6 +19,12 @@ async function bootstrap() {
   const port = configService.get<number>("API_GATEWAY_PORT", 4000);
   const allowedOrigin = configService.get<string>("FOODMENU_APP_URL", "*");
 
+  app.use(
+    createRequestLoggingMiddleware({
+      headers: configService.get<boolean>("HTTP_LOG_HEADERS", false),
+      body: configService.get<boolean>("HTTP_LOG_BODY", false),
+    }),
+  );
   app.use("/api/v1/webhooks/stripe", express.raw({ type: "application/json" }));
   app.use(
     "/assets",
@@ -26,6 +33,7 @@ async function bootstrap() {
       maxAge: "7d",
     }),
   );
+  mountProfilePhotoAssets(app, configService);
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: true, limit: "1mb" }));
   app.use(helmet());
@@ -35,7 +43,6 @@ async function bootstrap() {
   app.setGlobalPrefix("api/v1");
   app.useGlobalPipes(createValidationPipe());
   app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalInterceptors(new LoggingInterceptor());
   app.enableShutdownHooks();
 
   const swaggerConfig = new DocumentBuilder()

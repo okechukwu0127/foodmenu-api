@@ -2,13 +2,19 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { IsBoolean, IsOptional, IsString } from "class-validator";
 
 export class CreateSetupIntentDto {
-  @ApiProperty({ example: "customer_123" })
+  @ApiPropertyOptional({
+    description: "Derived from the login token; supplied values are ignored",
+  })
+  @IsOptional()
   @IsString()
   customerId!: string;
 }
 
 export class SavePaymentMethodDto {
-  @ApiProperty({ example: "customer_123" })
+  @ApiPropertyOptional({
+    description: "Derived from the login token; supplied values are ignored",
+  })
+  @IsOptional()
   @IsString()
   customerId!: string;
 
@@ -33,7 +39,10 @@ export class SavePaymentMethodDto {
 }
 
 export class PaymentMethodsQueryDto {
-  @ApiProperty({ example: "customer_123" })
+  @ApiPropertyOptional({
+    description: "Derived from the login token; supplied values are ignored",
+  })
+  @IsOptional()
   @IsString()
   customerId!: string;
 }

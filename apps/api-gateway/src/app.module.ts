@@ -12,6 +12,8 @@ import { HealthController } from "./health.controller";
 import { MenuController } from "./menu/menu.controller";
 import { OrdersController } from "./orders/orders.controller";
 
+import { AuthModule } from "./auth/auth.module";
+
 @Module({
   controllers: [
     HealthController,
@@ -27,6 +29,7 @@ import { OrdersController } from "./orders/orders.controller";
       isGlobal: true,
       validationSchema: envValidationSchema,
     }),
+    AuthModule,
     ThrottlerModule.forRoot([
       {
         limit: 20,
@@ -40,7 +43,10 @@ import { OrdersController } from "./orders/orders.controller";
         name: "PAYMENT_SERVICE",
         useFactory: (configService: ConfigService) => ({
           options: {
-            host: configService.get<string>("PAYMENT_SERVICE_HOST", "127.0.0.1"),
+            host: configService.get<string>(
+              "PAYMENT_SERVICE_HOST",
+              "127.0.0.1",
+            ),
             port: configService.get<number>("PAYMENT_SERVICE_PORT", 4010),
           },
           transport: Transport.TCP,

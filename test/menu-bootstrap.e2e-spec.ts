@@ -4,6 +4,8 @@ import * as request from "supertest";
 import { of } from "rxjs";
 import { AppModule } from "../apps/api-gateway/src/app.module";
 
+import { PrismaService } from "@app/database";
+
 describe("Menu bootstrap (e2e)", () => {
   let app: INestApplication;
 
@@ -17,6 +19,8 @@ describe("Menu bootstrap (e2e)", () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     })
+      .overrideProvider(PrismaService)
+      .useValue({})
       .overrideProvider("PAYMENT_SERVICE")
       .useValue({ send: jest.fn() })
       .overrideProvider("MENU_SERVICE")

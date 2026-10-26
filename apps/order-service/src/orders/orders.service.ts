@@ -12,10 +12,7 @@ import {
   UpdateOrderPaymentStatusDto,
 } from "@app/dto";
 import { StuartFulfilmentService } from "../fulfilment/stuart-fulfilment.service";
-import {
-  GoogleRoutesService,
-  LatLng,
-} from "../tracking/google-routes.service";
+import { GoogleRoutesService, LatLng } from "../tracking/google-routes.service";
 
 const ORDER_STATUS_GROUPS = {
   active: [
@@ -39,13 +36,6 @@ const ORDER_STATUS_GROUPS = {
 @Injectable()
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
-  private readonly demoCustomer = {
-    email: "demo.customer@foodmenu.local",
-    firstName: "Demo",
-    id: "demo-customer",
-    lastName: "Customer",
-    phone: "+440000000000",
-  };
 
   constructor(
     private readonly configService: ConfigService,
@@ -55,28 +45,28 @@ export class OrdersService {
   ) {}
 
   async createPendingOrder(payload: CreatePendingOrderDto) {
-    const customerId =
-      payload.customer?.id ?? payload.customerId ?? this.demoCustomer.id;
-    const customer = {
-      email: payload.customer?.email ?? this.demoCustomer.email,
-      firstName: payload.customer?.firstName ?? this.demoCustomer.firstName,
-      id: customerId,
-      isDemo: !payload.customer && !payload.customerId,
-      lastName: payload.customer?.lastName ?? this.demoCustomer.lastName,
-      phone: payload.customer?.phone ?? this.demoCustomer.phone,
-    };
-
-    await this.prisma.customer.upsert({
-      create: customer,
-      update: {
-        email: customer.email,
-        firstName: customer.firstName,
-        isDemo: customer.isDemo,
-        lastName: customer.lastName,
-        phone: customer.phone,
-      },
-      where: { id: customer.id },
+    const customerId = payload.customerId ?? payload.customer?.id;
+    if (!customerId) {
+      throw new RpcException({
+        code: "CUSTOMER_REQUIRED",
+        message: "An authenticated customer is required.",
+      });
+    }
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
     });
+    if (!customer) {
+      throw new RpcException({
+        code: "CUSTOMER_NOT_FOUND",
+        message: "Customer profile was not found.",
+      });
+    }
+    const customerContact = {
+      email: customer.email,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      phone: payload.customer?.phone ?? customer.phone,
+    };
 
     const orderId = payload.order?.id ?? payload.orderId;
     const checkoutSessionId =
@@ -85,6 +75,12 @@ export class OrdersService {
       orderId,
       checkoutSessionId,
     );
+    if (existingOrder && existingOrder.customerId !== customerId) {
+      throw new RpcException({
+        code: "ORDER_NOT_FOUND",
+        message: "Order not found.",
+      });
+    }
     const orderNumber = existingOrder?.orderNumber ?? this.createOrderNumber();
     const orderData = {
       amount: payload.amount,
@@ -92,13 +88,13 @@ export class OrdersService {
       currency: payload.currency,
       customerId: customer.id,
       deliveryAddress: payload.order?.deliveryAddress as
-        | Prisma.InputJsonValue
-        | undefined,
+        Prisma.InputJsonValue | undefined,
       deliveryFee: payload.order?.deliveryFee,
       discountAmount: payload.order?.discountAmount,
       metadata: {
         ...(payload.order?.metadata ?? {}),
         ...(payload.metadata ?? {}),
+        customerContact,
       } as Prisma.InputJsonValue,
       notes: payload.order?.notes,
       status: OrderStatus.PENDING_PAYMENT,
@@ -203,18 +199,14 @@ export class OrdersService {
         providerDeliveryId: payload.providerDeliveryId,
         providerJobId: payload.providerJobId,
         rawProviderPayload: payload.rawProviderPayload as
-          | Prisma.InputJsonValue
-          | undefined,
+          Prisma.InputJsonValue | undefined,
         status: this.normalizeFulfilmentStatus(payload.status),
         trackingUrl: payload.trackingUrl,
       },
       include: { provider: true },
     });
 
-    await this.syncOrderStatusFromFulfilment(
-      order.id,
-      fulfilment.status,
-    );
+    await this.syncOrderStatusFromFulfilment(order.id, fulfilment.status);
 
     return this.mapFulfilmentForApp(order, fulfilment);
   }
@@ -368,8 +360,7 @@ export class OrdersService {
         pickedUpAt: this.toDate(payload.pickedUpAt),
         providerDeliveryId: payload.providerDeliveryId,
         rawProviderPayload: payload.rawProviderPayload as
-          | Prisma.InputJsonValue
-          | undefined,
+          Prisma.InputJsonValue | undefined,
         ...(payload.status
           ? { status: this.normalizeFulfilmentStatus(payload.status) }
           : {}),
@@ -626,7 +617,8 @@ export class OrdersService {
     try {
       return await this.dispatchFulfilmentToStuart(orderId, fulfilment.id);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Dispatch failed";
+      const message =
+        error instanceof Error ? error.message : "Dispatch failed";
       this.logger.error(
         `Stuart dispatch failed for order ${orderId}: ${message}`,
       );
@@ -665,7 +657,29 @@ export class OrdersService {
       throw new Error("Order could not be found for Stuart dispatch.");
     }
 
-    const dispatch = await this.stuartFulfilmentService.createDelivery(order);
+    // Delivery uses checkout contact details even if the profile changes later.
+    const metadata = this.asRecord(order.metadata);
+    const contact = metadata?.customerContact;
+    const snapshot =
+      contact && typeof contact === "object" && !Array.isArray(contact)
+        ? (contact as Record<string, unknown>)
+        : null;
+    const dispatch = await this.stuartFulfilmentService.createDelivery({
+      ...order,
+      customer: snapshot
+        ? {
+            ...order.customer,
+            email: typeof snapshot.email === "string" ? snapshot.email : null,
+            firstName:
+              typeof snapshot.firstName === "string"
+                ? snapshot.firstName
+                : null,
+            lastName:
+              typeof snapshot.lastName === "string" ? snapshot.lastName : null,
+            phone: typeof snapshot.phone === "string" ? snapshot.phone : null,
+          }
+        : order.customer,
+    });
     const status = this.mapStuartStatus(dispatch.status);
     const fulfilment = await this.prisma.orderFulfilment.update({
       data: {
@@ -714,12 +728,14 @@ export class OrdersService {
     return fallbackProvider;
   }
 
-  private mapOrderForApp(order: Prisma.OrderGetPayload<{
-    include: {
-      fulfilments: { include: { provider: true } };
-      items: true;
-    };
-  }>) {
+  private mapOrderForApp(
+    order: Prisma.OrderGetPayload<{
+      include: {
+        fulfilments: { include: { provider: true } };
+        items: true;
+      };
+    }>,
+  ) {
     const items = order.items.map((item) => ({
       categoryId: item.categoryId,
       currency: item.currency,
@@ -771,10 +787,14 @@ export class OrdersService {
   }
 
   private getStatusGroup(status: OrderStatus) {
-    if ((ORDER_STATUS_GROUPS.completed as readonly OrderStatus[]).includes(status)) {
+    if (
+      (ORDER_STATUS_GROUPS.completed as readonly OrderStatus[]).includes(status)
+    ) {
       return "completed";
     }
-    if ((ORDER_STATUS_GROUPS.cancelled as readonly OrderStatus[]).includes(status)) {
+    if (
+      (ORDER_STATUS_GROUPS.cancelled as readonly OrderStatus[]).includes(status)
+    ) {
       return "cancelled";
     }
     return "active";
@@ -998,7 +1018,9 @@ export class OrdersService {
       picked_up: FulfilmentStatus.PICKED_UP,
     };
 
-    return normalized ? mapped[normalized] ?? FulfilmentStatus.CREATED : FulfilmentStatus.CREATED;
+    return normalized
+      ? (mapped[normalized] ?? FulfilmentStatus.CREATED)
+      : FulfilmentStatus.CREATED;
   }
 
   private async syncOrderStatusFromFulfilment(
@@ -1044,12 +1066,13 @@ export class OrdersService {
 
     return {
       clientTrackingUrl: fulfilment.clientTrackingUrl,
-      courier: fulfilment.courierName || fulfilment.courierPhone
-        ? {
-            name: fulfilment.courierName,
-            phone: fulfilment.courierPhone,
-          }
-        : null,
+      courier:
+        fulfilment.courierName || fulfilment.courierPhone
+          ? {
+              name: fulfilment.courierName,
+              phone: fulfilment.courierPhone,
+            }
+          : null,
       eta: {
         dropoff: fulfilment.estimatedDropoffAt,
         pickup: fulfilment.estimatedPickupAt,
@@ -1187,8 +1210,8 @@ export class OrdersService {
       status === FulfilmentStatus.CREATED ||
       status === FulfilmentStatus.COURIER_ASSIGNED ||
       status === FulfilmentStatus.PICKUP_STARTED
-        ? estimatedPickupAt ?? estimatedDropoffAt
-        : estimatedDropoffAt ?? estimatedPickupAt;
+        ? (estimatedPickupAt ?? estimatedDropoffAt)
+        : (estimatedDropoffAt ?? estimatedPickupAt);
 
     if (targetDate) {
       const minutes = Math.max(
@@ -1368,11 +1391,7 @@ export class OrdersService {
       Math.sin(dLat / 2) ** 2 +
       Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
 
-    return (
-      2 *
-      earthRadiusMeters *
-      Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
-    );
+    return 2 * earthRadiusMeters * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
   }
 
   private createOrderNumber() {

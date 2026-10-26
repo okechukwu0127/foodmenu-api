@@ -94,6 +94,10 @@ model Customer {
   stripeCustomerId String?                 @unique
   isDemo           Boolean                 @default(false)
   metadata         Json?
+  authAccount      AuthAccount?
+  addresses        CustomerAddress[]       @relation("CustomerAddresses")
+  defaultAddressId String?                 @db.VarChar(128)
+  defaultAddress   CustomerAddress?        @relation("DefaultCustomerAddress", fields: [id, defaultAddressId], references: [customerId, addressId], onDelete: NoAction, onUpdate: NoAction)
   orders           Order[]
   paymentMethods   CustomerPaymentMethod[]
   createdAt        DateTime                @default(now())
@@ -538,4 +542,58 @@ model PaymentRefund {
   @@index([paymentIntentId])
   @@index([status])
   @@index([createdAt])
+}
+
+model AuthAccount {
+  id                String             @id @default(cuid())
+  email             String             @unique
+  passwordHash      String?
+  googleSub         String?            @unique
+  customerId        String             @unique
+  customer          Customer           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  sessions          AuthSession[]
+  emailVerifiedAt   DateTime?
+  emailVerification EmailVerification?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model AuthSession {
+  id        String      @id @default(cuid())
+  tokenHash String      @unique
+  accountId String
+  account   AuthAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime    @default(now())
+
+  @@index([accountId])
+  @@index([expiresAt])
+}
+
+model CustomerAddress {
+  customerId String
+  addressId  String     @db.VarChar(128)
+  label      String     @db.VarChar(100)
+  address    String     @db.VarChar(1000)
+  latitude   Float?
+  longitude  Float?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  customer   Customer   @relation("CustomerAddresses", fields: [customerId], references: [id], onDelete: Cascade)
+  defaultFor Customer[] @relation("DefaultCustomerAddress")
+
+  @@id([customerId, addressId])
+}
+
+model EmailVerification {
+  accountId   String      @id
+  account     AuthAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  requestId   String
+  codeHash    String
+  requestedAt DateTime    @default(now())
+  sentAt      DateTime?
+  expiresAt   DateTime?
+  attempts    Int         @default(0)
+
+  @@index([expiresAt])
 }
