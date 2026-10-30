@@ -1,8 +1,15 @@
-import { ArgumentsHost } from "@nestjs/common";
+import { ArgumentsHost, BadRequestException } from "@nestjs/common";
 import { HttpExceptionFilter } from "../filters/http-exception.filter";
 import { serverErrorDetails, writeStructuredLog } from "./structured-log";
 
 describe("structured logs", () => {
+  beforeEach(() => {
+    jest.replaceProperty(process, "env", {
+      ...process.env,
+      LOG_COLOR: "never",
+    });
+    delete process.env.NO_COLOR;
+  });
   afterEach(() => jest.restoreAllMocks());
 
   it("writes standalone pretty JSON without Nest prefixes", () => {
@@ -76,6 +83,84 @@ describe("structured logs", () => {
         success: false,
         message: "Something went wrong",
       }),
+    );
+  });
+  it("prints forced error logs in red and resets the terminal color", () => {
+    const output = jest
+      .spyOn(process.stderr, "write")
+      .mockImplementation(() => true);
+    writeStructuredLog(
+      "error",
+      "HttpRequest",
+      { statusCode: 401 },
+      true,
+      "always",
+    );
+    const raw = String(output.mock.calls[0][0]);
+    expect(raw.startsWith("\u001b[31m")).toBe(true);
+    expect(raw.endsWith("\u001b[0m\n")).toBe(true);
+    expect(
+      raw
+        .trimEnd()
+        .split("\n")
+        .every(
+          (line) => line.startsWith("\u001b[31m") && line.endsWith("\u001b[0m"),
+        ),
+    ).toBe(true);
+    const json = raw.replaceAll("\u001b[31m", "").replaceAll("\u001b[0m", "");
+    expect(JSON.parse(json)).toMatchObject({ level: "error", statusCode: 401 });
+  });
+  it("respects NO_COLOR and leaves successful logs uncolored", () => {
+    process.env.NO_COLOR = "1";
+    const error = jest
+      .spyOn(process.stderr, "write")
+      .mockImplementation(() => true);
+    const info = jest
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true);
+    writeStructuredLog("error", "test", {}, false, "always");
+    writeStructuredLog("info", "test", {}, false, "always");
+    expect(String(error.mock.calls[0][0])).not.toContain("\u001b[");
+    expect(String(info.mock.calls[0][0])).not.toContain("\u001b[");
+  });
+  it("logs client response errors without leaking submitted free-text values", () => {
+    const output = jest
+      .spyOn(process.stderr, "write")
+      .mockImplementation(() => true);
+    const response = {
+      getHeader: () => "request-400",
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    const request = {
+      method: "POST",
+      route: { path: "/api/v1/ai/chat" },
+      originalUrl: "/api/v1/ai/chat",
+    };
+    const host = {
+      switchToHttp: () => ({
+        getRequest: () => request,
+        getResponse: () => response,
+      }),
+    } as unknown as ArgumentsHost;
+    new HttpExceptionFilter().catch(
+      new BadRequestException("private preference text"),
+      host,
+    );
+    const raw = String(output.mock.calls[0][0]);
+    expect(JSON.parse(raw)).toMatchObject({
+      level: "error",
+      event: "http_response_error",
+      requestId: "request-400",
+      response: {
+        success: false,
+        statusCode: 400,
+        error: { code: "REQUEST_FAILED" },
+      },
+    });
+    expect(raw).not.toContain("private preference text");
+    expect(response.json).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "private preference text" }),
     );
   });
 });

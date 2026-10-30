@@ -1,0 +1,9 @@
+{
+  "currency": "GBP",
+  "pickupEnabled": true,
+  "deliveryEnabled": true,
+  "deliveryFee": 500,
+  "deliveryCountries": ["GB"],
+  "deliveryPostcodePrefixes": [],
+  "taxRateBps": 0
+}

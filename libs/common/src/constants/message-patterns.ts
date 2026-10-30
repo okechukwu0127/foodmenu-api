@@ -1,4 +1,10 @@
 export const PAYMENT_PATTERNS = {
+  INVALIDATE_CHECKOUT_QUOTE: "payment.invalidateQuote",
+  CREATE_CHECKOUT_QUOTE: "payment.checkoutQuote",
+  GET_QUOTE_STATUS: "payment.quoteStatus",
+  CANCEL_QUOTE_PAYMENT: "payment.cancelQuote",
+  POLL_COMMERCE_EVENTS: "payment.commerceEvents",
+  ACK_COMMERCE_EVENT: "payment.ackCommerceEvent",
   CONFIRM_PAYMENT: "payment.confirm",
   CREATE_PAYMENT_INTENT: "payment.createIntent",
   CREATE_SETUP_INTENT: "payment.createSetupIntent",
@@ -12,6 +18,7 @@ export const PAYMENT_PATTERNS = {
 } as const;
 
 export const ORDER_PATTERNS = {
+  QUOTE_CHARGES: "order.quoteCharges",
   CREATE_ORDER_FULFILMENT: "order.createFulfilment",
   CREATE_PENDING_ORDER: "order.createPending",
   GET_CUSTOMER_ORDERS: "order.getCustomerOrders",
@@ -24,6 +31,7 @@ export const ORDER_PATTERNS = {
 } as const;
 
 export const MENU_PATTERNS = {
+  PRICE_CART: "menu.priceCart",
   GET_BOOTSTRAP: "menu.getBootstrap",
   GET_CATEGORIES: "menu.getCategories",
   GET_DEALS: "menu.getDeals",

@@ -50,7 +50,7 @@ function boundedDetails(value: unknown): unknown {
 
 export function createRequestLoggingMiddleware(
   options: { headers?: boolean; body?: boolean } = {},
-  logger?: Pick<Logger, "log">,
+  logger?: Pick<Logger, "log"> & Partial<Pick<Logger, "error">>,
 ): RequestHandler {
   return (request, response, next) => {
     const startedAt = process.hrtime.bigint();
@@ -60,7 +60,9 @@ export function createRequestLoggingMiddleware(
     const log = (aborted: boolean) => {
       if (logged) return;
       logged = true;
+      const failed = aborted || response.statusCode >= 400;
       const entry: Record<string, unknown> = {
+        event: failed ? "http_request_failed" : "http_request_completed",
         requestId,
         method: request.method,
         // Route templates avoid logging personal data embedded in URL parameters.
@@ -82,8 +84,15 @@ export function createRequestLoggingMiddleware(
         );
       }
       if (options.body) {
-        entry.query = boundedDetails(request.query);
-        entry.body = boundedDetails(request.body);
+        const aiRequest = /^\/api\/v1\/ai(?:\/|$)/.test(
+          request.originalUrl ?? request.url,
+        );
+        entry.query = aiRequest
+          ? "[AI CONTENT OMITTED]"
+          : boundedDetails(request.query);
+        entry.body = aiRequest
+          ? "[AI CONTENT OMITTED]"
+          : boundedDetails(request.body);
         if (request.file) {
           entry.file = {
             mimeType: request.file.mimetype,
@@ -91,8 +100,11 @@ export function createRequestLoggingMiddleware(
           };
         }
       }
-      if (logger) logger.log(JSON.stringify(entry));
-      else writeStructuredLog("info", "HttpRequest", entry);
+      if (logger) {
+        if (failed && logger.error) logger.error(JSON.stringify(entry));
+        else logger.log(JSON.stringify(entry));
+      } else
+        writeStructuredLog(failed ? "error" : "info", "HttpRequest", entry);
     };
     response.once("finish", () => log(false));
     response.once("close", () => log(!response.writableFinished));

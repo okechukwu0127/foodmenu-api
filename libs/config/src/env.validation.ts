@@ -1,6 +1,23 @@
 import * as Joi from "joi";
 
 export const envValidationSchema = Joi.object({
+  LOG_COLOR: Joi.string().valid("auto", "always", "never").default("auto"),
+  GOOGLE_GENERATIVE_AI_API_KEY: Joi.string().allow("").optional(),
+  AI_CONCIERGE_MODEL: Joi.string().max(100).default("gemini-3.8-flash"),
+  AI_PROVIDER_TIMEOUT_MS: Joi.number()
+    .integer()
+    .min(1000)
+    .max(120000)
+    .default(45000),
+  AI_GUEST_TTL_SECONDS: Joi.number()
+    .integer()
+    .min(60)
+    .max(604800)
+    .default(86400),
+  AI_RETENTION_DAYS: Joi.number().integer().min(1).max(365).default(30),
+  AI_ACCOUNT_RATE_LIMIT: Joi.number().integer().min(1).max(1000).default(20),
+  AI_GUEST_RATE_LIMIT: Joi.number().integer().min(1).max(100).default(5),
+  AI_GUEST_CREATE_RATE_LIMIT: Joi.number().integer().min(1).max(100).default(3),
   HTTP_LOG_HEADERS: Joi.boolean().default(false),
   HTTP_LOG_BODY: Joi.boolean().default(false),
   EMAIL_VERIFICATION_TTL_SECONDS: Joi.number()

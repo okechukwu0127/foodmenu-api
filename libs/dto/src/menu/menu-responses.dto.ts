@@ -87,6 +87,17 @@ export class ModifierGroupResponseDto {
 }
 
 export class FoodDetailsResponseDto {
+  @ApiProperty({ description: "Current restaurant-supplied availability" })
+  isFoodAvailable!: boolean;
+
+  @ApiPropertyOptional({
+    type: Object,
+    nullable: true,
+    description:
+      "Restaurant-supplied dietary declaration; null means unknown. See AI_CONCIERGE_API.md for the declaration schema.",
+  })
+  dietaryInfo?: Record<string, unknown> | null;
+
   @ApiProperty({ example: "classic-cheeseburger" })
   id!: string;
 

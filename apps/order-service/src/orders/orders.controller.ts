@@ -1,3 +1,5 @@
+import { CheckoutChargesService } from "../checkout/checkout-charges.service";
+import { commerceRpc } from "@app/dto";
 import { Controller } from "@nestjs/common";
 import { MessagePattern, Payload } from "@nestjs/microservices";
 import { ORDER_PATTERNS } from "@app/common";
@@ -13,7 +15,15 @@ import { OrdersService } from "./orders.service";
 
 @Controller()
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly charges: CheckoutChargesService,
+  ) {}
+
+  @MessagePattern(ORDER_PATTERNS.QUOTE_CHARGES)
+  quoteCharges(@Payload() payload: unknown) {
+    return commerceRpc(() => this.charges.quote(payload));
+  }
 
   @MessagePattern(ORDER_PATTERNS.CREATE_PENDING_ORDER)
   createPendingOrder(@Payload() payload: CreatePendingOrderDto) {

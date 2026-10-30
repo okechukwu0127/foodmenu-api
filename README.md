@@ -10,6 +10,8 @@ Authenticated [profile photo uploads](docs/profile-photos.md) are available at `
 
 The [Password Manager API](docs/password-management.md) is available at `POST /api/v1/auth/change-password`; it verifies the current password and revokes all sessions after a successful change.
 
+The [AI Food Concierge API](AI_CONCIERGE_API.md) adds Gemini text chat, menu-backed cards, saved profiles, personal restrictions, guest access, and offline reconciliation. Apply its migration, publish configuration with `npm run ai:seed`, and configure a server-only Gemini key before use.
+
 # foodMenu API
 
 Production-ready NestJS monorepo backend for the foodMenu mobile app.
@@ -305,105 +307,33 @@ Detach and soft-delete a saved card:
 curl -X DELETE http://localhost:4000/api/v1/payments/stripe/payment-methods/card_db_id
 ```
 
-Checkout can now use either the Stripe payment method id or the local saved card
-id:
+### Server-priced checkout
 
-```json
-{
-  "amount": 2500,
-  "currency": "gbp",
-  "customerId": "customer_123",
-  "checkoutSessionId": "checkout_1791909664130",
-  "savedPaymentMethodId": "card_db_id"
-}
-```
+Checkout now requires a server-issued quote. Client-supplied amount, order totals,
+metadata and ownership fields are rejected. Run `npm run prisma:deploy`, review
+`prisma/checkout-policy.json`, and publish it using `npm run checkout:seed`.
 
-`checkoutSessionId` is the checkout idempotency key. Generate it once when the
-customer starts the checkout/payment attempt and reuse the same value on network
-retries. The backend uses it to reuse the same pending order and Stripe
-idempotency key instead of creating duplicate orders/payment intents.
+For the continuous AI chat flow, use the [conversation commerce API](docs/conversation-commerce.md):
+food selection -> cart actions -> guest claim if needed -> prepare checkout ->
+payment UI -> verified confirmation, all under the same conversation UUID.
 
-### Create Payment Intent
+For ordinary checkout, first call `POST /api/v1/payments/stripe/quotes` with an
+idempotent requestId, menu food/option IDs and quantities, and pickup/delivery
+selection. The backend supplies current prices and charges. Then:
 
 ```bash
 curl -X POST http://localhost:4000/api/v1/payments/stripe/payment-intent \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"amount":2500,"currency":"gbp","orderId":"order_123"}'
+  -d '{"quoteId":"SERVER_QUOTE_UUID"}'
 ```
 
-Response:
-
-```json
-{
-  "success": true,
-  "status": "success",
-  "statusCode": 201,
-  "message": "Request successful",
-  "data": {
-    "clientSecret": "pi_...",
-    "customerEphemeralKeySecret": "ek_...",
-    "customerId": "cus_...",
-    "paymentIntentId": "pi_...",
-    "status": "requires_payment_method"
-  },
-  "path": "/api/v1/payments/stripe/payment-intent",
-  "timestamp": "2026-09-29T00:00:00.000Z"
-}
-```
-
-The `payment-intent` request is also where the frontend should send the checkout
-order snapshot. Order-service creates the order as `PENDING_PAYMENT`, then
-payment-service updates it through TCP after Stripe status changes.
-
-Pass customer/order data like this:
-
-```json
-{
-  "amount": 2897,
-  "currency": "gbp",
-  "customer": {
-    "firstName": "John",
-    "lastName": "Doe",
-    "email": "john@example.com",
-    "phone": "+447700900123"
-  },
-  "order": {
-    "deliveryFee": 199,
-    "deliveryAddress": {
-      "line1": "23 King Street",
-      "city": "London",
-      "postcode": "SW1A 1AA",
-      "country": "GB"
-    },
-    "items": [
-      {
-        "foodItemId": "food-001",
-        "categoryId": "burgers",
-        "name": "Smoky BBQ Burger",
-        "description": "Juicy beef patty with smoky BBQ sauce.",
-        "imageUrl": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200",
-        "quantity": 2,
-        "unitAmount": 1299,
-        "modifiers": [
-          {
-            "groupId": "mod_burger_size",
-            "groupName": "Choose your burger size",
-            "optionId": "opt_burger_large",
-            "optionName": "Large",
-            "priceOffset": 200,
-            "quantity": 1
-          }
-        ],
-        "itemSnapshot": {
-          "tags": ["beef", "spicy"],
-          "rating": 4.8,
-          "calories": 720
-        }
-      }
-    ]
-  }
-}
-```
+The response includes the existing Stripe UI fields: clientSecret,
+customerEphemeralKeySecret, Stripe customerId, paymentIntentId, orderId,
+orderNumber and current status. Keep payment secrets transient and out of logs.
+The quote supplies the stable checkout/order/payment idempotency identity. A
+conversation quote must use its conversation payment endpoint instead of this
+generic route. Review expiry, replay and reconciliation behavior in the guide.
 
 ## Order Endpoints
 

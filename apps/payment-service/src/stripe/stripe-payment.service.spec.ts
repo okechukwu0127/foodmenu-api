@@ -1,3 +1,4 @@
+import { CheckoutQuotesService } from "../checkout/checkout-quotes.service";
 import { Test } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
 import { of } from "rxjs";
@@ -65,7 +66,7 @@ describe("StripePaymentService", () => {
         secret: "ek_secret",
       });
 
-    const result = await service.createPaymentIntent({
+    const result = await (service as any).createTrustedPaymentIntent({
       amount: 2500,
       currency: "gbp",
       orderId: "order_123",
@@ -98,6 +99,14 @@ describe("StripePaymentService", () => {
     });
   });
 
+  it("rejects client-supplied totals without a server quote", async () => {
+    const service = await createService();
+    await expect(
+      service.createPaymentIntent({ amount: 1, currency: "gbp" }),
+    ).rejects.toThrow();
+    expect(orderClient.send).not.toHaveBeenCalled();
+  });
+
   it("rejects unsigned Stripe webhook events without changing payment state", async () => {
     const service = await createService();
     await expect(
@@ -116,6 +125,10 @@ describe("StripePaymentService", () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         StripePaymentService,
+        {
+          provide: CheckoutQuotesService,
+          useValue: { consume: jest.fn(), recordVerified: jest.fn() },
+        },
         {
           provide: ConfigService,
           useValue: {

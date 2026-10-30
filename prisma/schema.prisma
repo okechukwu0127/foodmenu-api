@@ -86,6 +86,7 @@ model PaymentTransaction {
 }
 
 model Customer {
+  aiState          AiCustomerState?
   id               String                  @id
   firstName        String?
   lastName         String?
@@ -268,6 +269,7 @@ model Category {
 }
 
 model FoodItem {
+  dietaryInfo           Json?
   id                    String                  @id @default(cuid())
   slug                  String                  @unique
   categoryId            String
@@ -596,4 +598,229 @@ model EmailVerification {
   attempts    Int         @default(0)
 
   @@index([expiresAt])
+}
+
+// Concierge-owned data. Identity/menu business records are accessed through RPC.
+model AiConfiguration {
+  version   String   @id
+  active    Boolean  @default(false)
+  data      Json
+  createdAt DateTime @default(now())
+
+  @@index([active])
+}
+
+model AiCustomerState {
+  defaultProfile       AiPreferenceProfile?  @relation("AiDefaultProfile", fields: [customerId, defaultProfileId], references: [customerId, id], onDelete: NoAction, onUpdate: NoAction)
+  customerId           String                @id
+  customer             Customer              @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  defaultProfileId     String?               @db.Uuid
+  defaultRevision      Int                   @default(1)
+  accountAnswers       Json                  @default("{}")
+  accountConfigVersion String?
+  accountRevision      Int                   @default(1)
+  accountUpdatedAt     DateTime              @default(now())
+  profiles             AiPreferenceProfile[]
+  imports              AiProfileImport[]
+  mappings             AiImportMapping[]
+  conversations        AiConversation[]
+}
+
+model AiPreferenceProfile {
+  mappings      AiImportMapping[] @relation("AiMappedProfile")
+  defaultFor    AiCustomerState[] @relation("AiDefaultProfile")
+  id            String            @id @db.Uuid
+  customerId    String
+  owner         AiCustomerState   @relation(fields: [customerId], references: [customerId], onDelete: Cascade)
+  name          String            @db.VarChar(120)
+  configVersion String
+  answers       Json
+  revision      Int               @default(1)
+  deletedAt     DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([customerId, id])
+  @@index([customerId, deletedAt, createdAt])
+}
+
+model AiProfileImport {
+  customerId  String
+  importId    String          @db.Uuid
+  owner       AiCustomerState @relation(fields: [customerId], references: [customerId], onDelete: Cascade)
+  requestHash String
+  result      Json
+  createdAt   DateTime        @default(now())
+
+  @@id([customerId, importId])
+}
+
+model AiImportMapping {
+  profile    AiPreferenceProfile @relation("AiMappedProfile", fields: [customerId, profileId], references: [customerId, id], onDelete: NoAction, onUpdate: NoAction)
+  customerId String
+  localId    String              @db.Uuid
+  profileId  String              @db.Uuid
+  owner      AiCustomerState     @relation(fields: [customerId], references: [customerId], onDelete: Cascade)
+
+  @@id([customerId, localId])
+}
+
+model AiConversation {
+  commerce              AiCommerceState?
+  commerceActions       AiCommerceAction[]
+  checkouts             AiConversationCheckout[]
+  claimedGuestTokenHash String?
+  claimExpiresAt        DateTime?
+  nextSequence          Int                      @default(0)
+  id                    String                   @id @default(uuid()) @db.Uuid
+  customerId            String?
+  owner                 AiCustomerState?         @relation(fields: [customerId], references: [customerId], onDelete: Cascade)
+  guestTokenHash        String?                  @unique
+  guestExpiresAt        DateTime?
+  locale                String
+  context               Json
+  contextRevision       Int                      @default(1)
+  deletedAt             DateTime?
+  expiresAt             DateTime
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  turns                 AiTurn[]
+  messages              AiMessage[]
+
+  @@index([customerId, createdAt, id])
+  @@index([expiresAt])
+}
+
+model AiTurn {
+  kind            String         @default("CHAT")
+  context         Json
+  id              String         @id @default(uuid()) @db.Uuid
+  conversationId  String         @db.Uuid
+  conversation    AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  clientMessageId String         @db.Uuid
+  requestHash     String
+  status          String
+  errorCode       String?
+  leaseExpiresAt  DateTime
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  messages        AiMessage[]
+
+  @@unique([id, conversationId])
+  @@unique([conversationId, clientMessageId])
+  @@index([conversationId, status])
+}
+
+model AiMessage {
+  sequence       Int
+  id             String         @id @default(uuid()) @db.Uuid
+  conversationId String         @db.Uuid
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  turnId         String         @db.Uuid
+  turn           AiTurn         @relation(fields: [turnId, conversationId], references: [id, conversationId], onDelete: Cascade)
+  role           String
+  text           String
+  parts          Json
+  createdAt      DateTime       @default(now())
+
+  @@unique([conversationId, sequence])
+  @@index([conversationId, createdAt, id])
+}
+
+model AiRateBucket {
+  key       String   @id
+  count     Int      @default(1)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+model AiCommerceState {
+  conversationId String         @id @db.Uuid
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  revision       Int            @default(1)
+  cart           Json           @default("[]")
+  draft          Json?
+  stage          String         @default("BROWSING")
+  quoteId        String?        @db.Uuid
+  updatedAt      DateTime       @updatedAt
+}
+
+model AiCommerceAction {
+  conversationId String         @db.Uuid
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  actionId       String         @db.Uuid
+  requestHash    String
+  result         Json
+  createdAt      DateTime       @default(now())
+
+  @@id([conversationId, actionId])
+}
+
+model AiConversationCheckout {
+  quoteId         String         @id @db.Uuid
+  conversationId  String         @db.Uuid
+  conversation    AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  customerId      String
+  cartRevision    Int
+  orderId         String?
+  paymentIntentId String?        @unique
+  status          String         @default("PREPARED")
+  amount          Int
+  currency        String
+  lastObservation Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([conversationId, createdAt])
+}
+
+model CheckoutPolicy {
+  currency                 String   @id
+  revision                 Int      @default(1)
+  pickupEnabled            Boolean  @default(true)
+  deliveryEnabled          Boolean  @default(false)
+  deliveryFee              Int      @default(0)
+  deliveryCountries        String[] @default([])
+  deliveryPostcodePrefixes String[] @default([])
+  taxRateBps               Int      @default(0)
+  updatedAt                DateTime @updatedAt
+}
+
+model CheckoutQuote {
+  id              String                 @id @default(uuid()) @db.Uuid
+  customerId      String
+  requestId       String                 @db.Uuid
+  conversationId  String?                @db.Uuid
+  requestHash     String
+  selection       Json
+  snapshot        Json
+  amount          Int
+  currency        String
+  state           String                 @default("OPEN")
+  reservedAt      DateTime?
+  paymentIntentId String?                @unique
+  orderId         String?
+  observation     Int                    @default(0)
+  observedStatus  String?
+  expiresAt       DateTime
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  events          PaymentCommerceEvent[]
+
+  @@unique([customerId, requestId])
+  @@index([expiresAt])
+}
+
+model PaymentCommerceEvent {
+  id             String        @id @default(uuid()) @db.Uuid
+  quoteId        String        @db.Uuid
+  quote          CheckoutQuote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  observation    Int
+  payload        Json
+  acknowledgedAt DateTime?
+  createdAt      DateTime      @default(now())
+
+  @@unique([quoteId, observation])
+  @@index([acknowledgedAt, createdAt])
 }

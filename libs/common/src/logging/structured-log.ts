@@ -4,6 +4,8 @@ export function writeStructuredLog(
   fields: Record<string, unknown>,
   pretty = process.env.LOG_PRETTY !== "false" &&
     process.env.NODE_ENV !== "production",
+  color: "auto" | "always" | "never" = (process.env.LOG_COLOR as
+    "auto" | "always" | "never") ?? "auto",
 ): void {
   const entry = {
     ...fields,
@@ -12,7 +14,22 @@ export function writeStructuredLog(
     context,
   };
   const output = JSON.stringify(entry, null, pretty ? 2 : undefined) + "\n";
-  (level === "error" ? process.stderr : process.stdout).write(output);
+  const stream = level === "error" ? process.stderr : process.stdout;
+  const useRed =
+    level === "error" &&
+    process.env.NO_COLOR === undefined &&
+    (color === "always" || (color === "auto" && Boolean(stream.isTTY)));
+  // Color each line so process-manager prefixes cannot reset the rest of a
+  // pretty-printed JSON block back to the default terminal color.
+  stream.write(
+    useRed
+      ? output
+          .trimEnd()
+          .split("\n")
+          .map((line) => `\u001b[31m${line}\u001b[0m`)
+          .join("\n") + "\n"
+      : output,
+  );
 }
 
 // Database/provider messages can contain submitted values and credentials.

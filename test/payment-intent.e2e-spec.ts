@@ -70,10 +70,7 @@ describe("Stripe payment intent (e2e)", () => {
       .post("/api/v1/payments/stripe/payment-intent")
       .set("Authorization", `Bearer ${"a".repeat(64)}`)
       .send({
-        amount: 2500,
-        currency: "gbp",
-        customerId: "victim",
-        customer: { id: "victim" },
+        quoteId: "16ecb2b0-9b8c-4f48-b81b-ec7ac46d1cb7",
       })
       .expect(201)
       .expect(({ body }) => {
@@ -97,9 +94,21 @@ describe("Stripe payment intent (e2e)", () => {
       expect.any(String),
       expect.objectContaining({
         customerId: "customer-1",
-        customer: expect.objectContaining({ id: "customer-1" }),
+        quoteId: "16ecb2b0-9b8c-4f48-b81b-ec7ac46d1cb7",
       }),
     );
+  });
+
+  it("rejects client pricing and ownership fields", async () => {
+    await request(app.getHttpServer())
+      .post("/api/v1/payments/stripe/payment-intent")
+      .set("Authorization", `Bearer ${"a".repeat(64)}`)
+      .send({
+        quoteId: "16ecb2b0-9b8c-4f48-b81b-ec7ac46d1cb7",
+        amount: 1,
+        customerId: "victim",
+      })
+      .expect(400);
   });
 
   it.each([

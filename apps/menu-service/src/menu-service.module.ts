@@ -1,3 +1,4 @@
+import { CartPricingService } from "./pricing/cart-pricing.service";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { envValidationSchema } from "@app/config";
@@ -15,6 +16,6 @@ import { MenuCatalogService } from "./menu/menu-catalog.service";
     }),
     DatabaseModule,
   ],
-  providers: [MenuCatalogService],
+  providers: [CartPricingService, MenuCatalogService],
 })
 export class MenuServiceModule {}

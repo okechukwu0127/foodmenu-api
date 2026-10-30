@@ -27,7 +27,6 @@ import {
   ConfirmPaymentResponseDto,
   CreateSetupIntentDto,
   CreateSetupIntentResponseDto,
-  CreatePaymentIntentDto,
   CreatePaymentIntentResponseDto,
   CustomerPaymentMethodResponseDto,
   PaymentMethodParamDto,
@@ -40,6 +39,7 @@ import {
   UpdatePaymentMethodDto,
 } from "@app/dto";
 
+import { QuotePaymentDto, quoteInputSchema, commerceParse } from "@app/dto";
 import { AuthGuard, CurrentLogin, Login } from "../auth/auth.guard";
 import { CustomerAccessService } from "../auth/customer-access.service";
 
@@ -56,16 +56,31 @@ export class PaymentsController {
 
   @Post("payment-intent")
   @ApiOperation({ summary: "Create a Stripe payment intent" })
-  @ApiBody({ type: CreatePaymentIntentDto })
+  @ApiBody({ type: QuotePaymentDto })
   @ApiResponse({ status: 201, type: CreatePaymentIntentResponseDto })
   async createPaymentIntent(
     @CurrentLogin() login: Login,
-    @Body() dto: CreatePaymentIntentDto,
+    @Body() dto: QuotePaymentDto,
   ) {
-    return this.send(
-      PAYMENT_PATTERNS.CREATE_PAYMENT_INTENT,
-      await this.access.checkout(login, dto),
+    return this.send(PAYMENT_PATTERNS.CREATE_PAYMENT_INTENT, {
+      quoteId: dto.quoteId,
+      customerId: login.customerId,
+    });
+  }
+
+  @Post("quotes")
+  @ApiOperation({
+    summary: "Create a server-priced checkout quote; never supply totals",
+  })
+  createQuote(@CurrentLogin() login: Login, @Body() input: unknown) {
+    const dto = commerceParse(
+      quoteInputSchema.omit({ customerId: true, conversationId: true }),
+      input,
     );
+    return this.send(PAYMENT_PATTERNS.CREATE_CHECKOUT_QUOTE, {
+      ...dto,
+      customerId: login.customerId,
+    });
   }
 
   @Post("setup-intent")
@@ -185,17 +200,37 @@ export class PaymentsController {
       this.paymentClient
         .send(pattern, payload)
         .pipe(
-          catchError((error: { code?: string; message?: string }) =>
-            throwError(
-              () =>
-                new AppError(
-                  error.code ?? "PAYMENT_SERVICE_ERROR",
-                  error.message ?? "Payment service request failed",
-                  502,
-                  error,
-                ),
-            ),
-          ),
+          catchError((error: unknown) => {
+            const details =
+              typeof error === "object" && error !== null
+                ? (error as Record<string, unknown>)
+                : {};
+            const nested =
+              typeof details.error === "object" && details.error !== null
+                ? (details.error as Record<string, unknown>)
+                : {};
+            const code =
+              (typeof details.code === "string" && details.code) ||
+              (typeof nested.code === "string" && nested.code) ||
+              "PAYMENT_SERVICE_ERROR";
+            const message =
+              (typeof details.message === "string" && details.message) ||
+              (typeof nested.message === "string" && nested.message) ||
+              "Payment service request failed";
+            const statusCode =
+              (typeof details.statusCode === "number" &&
+                details.statusCode >= 400 &&
+                details.statusCode < 500 &&
+                details.statusCode) ||
+              (typeof nested.statusCode === "number" &&
+                nested.statusCode >= 400 &&
+                nested.statusCode < 500 &&
+                nested.statusCode) ||
+              502;
+            return throwError(
+              () => new AppError(code, message, statusCode, error),
+            );
+          }),
         ),
     );
   }

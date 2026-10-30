@@ -1,3 +1,4 @@
+import { CheckoutChargesService } from "./checkout/checkout-charges.service";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { envValidationSchema } from "@app/config";
@@ -17,6 +18,11 @@ import { GoogleRoutesService } from "./tracking/google-routes.service";
     }),
     DatabaseModule,
   ],
-  providers: [GoogleRoutesService, OrdersService, StuartFulfilmentService],
+  providers: [
+    CheckoutChargesService,
+    GoogleRoutesService,
+    OrdersService,
+    StuartFulfilmentService,
+  ],
 })
 export class OrderServiceModule {}

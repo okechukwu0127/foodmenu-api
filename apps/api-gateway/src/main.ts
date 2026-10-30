@@ -38,6 +38,7 @@ async function bootstrap() {
   app.use(express.urlencoded({ extended: true, limit: "1mb" }));
   app.use(helmet());
   app.enableCors({
+    exposedHeaders: ["ETag", "X-Request-Id", "X-Vercel-AI-UI-Message-Stream"],
     origin: allowedOrigin === "*" ? true : allowedOrigin,
   });
   app.setGlobalPrefix("api/v1");
