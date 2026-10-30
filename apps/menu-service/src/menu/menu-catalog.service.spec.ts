@@ -32,6 +32,37 @@ describe("MenuCatalogService", () => {
     service = moduleRef.get(MenuCatalogService);
   });
 
+  it("requests only active categories with deterministic tie-breaking and existing asset fields", async () => {
+    prisma.category.findMany.mockResolvedValue([
+      {
+        id: "category",
+        slug: "category",
+        name: { en: "Category" },
+        icon: "icon",
+        imageUrl: "/assets/category.webp",
+        sortOrder: 1,
+      },
+    ]);
+    const result = await service.getCategories();
+    expect(prisma.category.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { isActive: true },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        select: expect.objectContaining({
+          name: true,
+          displayName: true,
+          imageUrl: true,
+          icon: true,
+        }),
+      }),
+    );
+    expect(result[0]).toMatchObject({
+      id: "category",
+      icon: "icon",
+      imageUrl: "/assets/category.webp",
+    });
+  });
+
   it("returns a complete bootstrap payload", async () => {
     prisma.heroSlide.findMany.mockResolvedValue([]);
     prisma.category.findMany.mockResolvedValue([]);
@@ -121,15 +152,21 @@ describe("MenuCatalogService", () => {
     for (const model of [prisma.deal, prisma.hotCombo]) {
       expect(model.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          select: expect.objectContaining({ foodItem: { select: expect.any(Object) } }),
+          select: expect.objectContaining({
+            foodItem: { select: expect.any(Object) },
+          }),
         }),
       );
     }
   });
 
   it("keeps unlinked promotions usable with null food details", async () => {
-    prisma.deal.findMany.mockResolvedValue([{ id: "basket-deal", foodItem: null }]);
-    prisma.hotCombo.findMany.mockResolvedValue([{ id: "legacy-combo", foodItem: null, price: null }]);
+    prisma.deal.findMany.mockResolvedValue([
+      { id: "basket-deal", foodItem: null },
+    ]);
+    prisma.hotCombo.findMany.mockResolvedValue([
+      { id: "legacy-combo", foodItem: null, price: null },
+    ]);
 
     expect((await service.getDeals())[0].foodItem).toBeNull();
     expect((await service.getHotCombos())[0].foodItem).toBeNull();
@@ -145,14 +182,21 @@ describe("MenuCatalogService", () => {
     categoryId: "burgers",
     currency: "GBP",
     description: "A burger",
-    fulfillmentOptions: [{ mode: "delivery", label: "Delivery" }, { mode: "pickup", label: "Pickup" }],
+    fulfillmentOptions: [
+      { mode: "delivery", label: "Delivery" },
+      { mode: "pickup", label: "Pickup" },
+    ],
     id: slug,
     images: [],
     isPopular: true,
-    modifierGroups: [{ modifierGroup: {
-      id: "extras",
-      options: [{ id: "cheese", name: "Cheese", priceOffset: 150 }],
-    } }],
+    modifierGroups: [
+      {
+        modifierGroup: {
+          id: "extras",
+          options: [{ id: "cheese", name: "Cheese", priceOffset: 150 }],
+        },
+      },
+    ],
     name: slug,
     prepTimeMinutes: 15,
     price: 1299,

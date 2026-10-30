@@ -112,4 +112,39 @@ describe("HTTP request logging", () => {
       "[DETAILS SIZE LIMIT]",
     );
   });
+  it("omits AI chat text and sensitive preference answers even in verbose logs", () => {
+    const { request, response, logger } = run({ body: true, headers: true });
+    request.originalUrl = "/api/v1/ai/chat";
+    request.body = {
+      text: "private medical information",
+      answers: { diet: "private preference" },
+    };
+    response.emit("finish");
+    const raw = logger.log.mock.calls[0][0];
+    expect(raw).not.toContain("private medical information");
+    expect(raw).not.toContain("private preference");
+    expect(JSON.parse(raw).body).toBe("[AI CONTENT OMITTED]");
+  });
+  it.each([
+    [400, false, true],
+    [503, false, true],
+    [200, true, true],
+    [200, false, false],
+  ])(
+    "routes status %s / aborted %s to the appropriate severity",
+    (status, aborted, failed) => {
+      const { request, response } = run();
+      response.statusCode = status as number;
+      response.writableFinished = !aborted;
+      const logger = { log: jest.fn(), error: jest.fn() };
+      createRequestLoggingMiddleware({}, logger)(
+        request,
+        response as unknown as Response,
+        jest.fn(),
+      );
+      response.emit(aborted ? "close" : "finish");
+      expect(logger.error).toHaveBeenCalledTimes(failed ? 1 : 0);
+      expect(logger.log).toHaveBeenCalledTimes(failed ? 0 : 1);
+    },
+  );
 });

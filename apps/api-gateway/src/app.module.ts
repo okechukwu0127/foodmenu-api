@@ -12,6 +12,7 @@ import { HealthController } from "./health.controller";
 import { MenuController } from "./menu/menu.controller";
 import { OrdersController } from "./orders/orders.controller";
 
+import { AiConciergeModule } from "./ai-concierge/ai-concierge.module";
 import { AuthModule } from "./auth/auth.module";
 
 @Module({
@@ -30,6 +31,7 @@ import { AuthModule } from "./auth/auth.module";
       validationSchema: envValidationSchema,
     }),
     AuthModule,
+    AiConciergeModule,
     ThrottlerModule.forRoot([
       {
         limit: 20,

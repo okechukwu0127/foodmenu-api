@@ -31,9 +31,13 @@
     "start:identity": "node dist/apps/identity-service/main.js",
     "test:addresses": "node scripts/test-addresses.cjs",
     "test:email-verification": "node scripts/test-email-verification.cjs",
-    "test:profile-photos": "node scripts/test-profile-photos.cjs"
+    "test:profile-photos": "node scripts/test-profile-photos.cjs",
+    "ai:seed": "node scripts/seed-ai-concierge.cjs",
+    "test:ai": "node scripts/test-ai-concierge.cjs",
+    "checkout:seed": "node scripts/seed-checkout-policy.cjs"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.138",
     "@googlemaps/polyline-codec": "^1.0.28",
     "@nestjs/common": "^11.1.9",
     "@nestjs/config": "^4.0.2",
@@ -43,6 +47,7 @@
     "@nestjs/swagger": "^11.2.3",
     "@nestjs/throttler": "^6.4.0",
     "@prisma/client": "^6.18.0",
+    "ai": "^6.0.315",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "google-auth-library": "^11.3.1",
@@ -53,7 +58,8 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "sharp": "^0.35.5",
-    "stripe": "^19.1.0"
+    "stripe": "^19.1.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",

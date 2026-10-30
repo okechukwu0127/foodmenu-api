@@ -1,10 +1,16 @@
+import { CheckoutQuotesService } from "../checkout/checkout-quotes.service";
+import { QuotePaymentPayload, commerceFailure, commerceRpc } from "@app/dto";
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { ClientProxy, RpcException } from "@nestjs/microservices";
 import { PaymentStatus, Prisma } from "@prisma/client";
 import { firstValueFrom } from "rxjs";
 import Stripe from "stripe";
-import { ORDER_PATTERNS } from "@app/common";
+import {
+  ORDER_PATTERNS,
+  serverErrorDetails,
+  writeStructuredLog,
+} from "@app/common";
 import { PrismaService } from "@app/database";
 import {
   ConfirmPaymentDto,
@@ -26,6 +32,7 @@ export class StripePaymentService {
     private readonly prisma: PrismaService,
     @Inject("ORDER_SERVICE")
     private readonly orderClient: ClientProxy,
+    private readonly quotes: CheckoutQuotesService,
   ) {
     this.stripe = new Stripe(
       this.configService.getOrThrow<string>("STRIPE_SECRET_KEY"),
@@ -35,7 +42,61 @@ export class StripePaymentService {
     );
   }
 
-  async createPaymentIntent(payload: CreatePaymentIntentDto) {
+  async createPaymentIntent(
+    payload: QuotePaymentPayload | CreatePaymentIntentDto,
+  ) {
+    return commerceRpc(async () => {
+      if (!("quoteId" in payload) || !payload.quoteId || !payload.customerId)
+        commerceFailure(
+          "CHECKOUT_QUOTE_REQUIRED",
+          "Create a server checkout quote before payment",
+        );
+      return this.quotes.consume(
+        payload.quoteId,
+        payload.customerId!,
+        payload.conversationId,
+        (trusted, resumeId) =>
+          this.createTrustedPaymentIntent(trusted, resumeId),
+      );
+    });
+  }
+  async quoteStatus(quoteId: string, customerId: string) {
+    return commerceRpc(async () => {
+      const q = await this.quotes.owned(quoteId, customerId);
+      if (q.paymentIntentId) await this.getPaymentStatus(q.paymentIntentId);
+      const current = await this.quotes.owned(quoteId, customerId);
+      return {
+        quoteId,
+        conversationId: current.conversationId,
+        customerId,
+        observation: current.observation,
+        paymentIntentId: current.paymentIntentId,
+        orderId: current.orderId,
+        amount: current.amount,
+        currency: current.currency,
+        status: current.observedStatus ?? "PREPARED",
+      };
+    });
+  }
+  async cancelQuote(quoteId: string, customerId: string) {
+    return commerceRpc(async () => {
+      const q = await this.quotes.owned(quoteId, customerId);
+      if (!q.paymentIntentId)
+        commerceFailure("PAYMENT_NOT_STARTED", "Payment has not started", 409);
+      const current = await this.stripe.paymentIntents.retrieve(
+        q.paymentIntentId!,
+      );
+      if (current.status !== "succeeded" && current.status !== "canceled") {
+        const cancelled = await this.stripe.paymentIntents.cancel(current.id);
+        await this.syncPaymentIntent(cancelled);
+      }
+      return this.quoteStatus(quoteId, customerId);
+    });
+  }
+  private async createTrustedPaymentIntent(
+    payload: CreatePaymentIntentDto,
+    resumeId?: string,
+  ) {
     try {
       const currency = payload.currency?.toLowerCase() ?? "gbp";
       const savedPaymentMethod = payload.savedPaymentMethodId
@@ -69,20 +130,22 @@ export class StripePaymentService {
       if (payload.paymentMethodId) {
         metadata.paymentMethodId = payload.paymentMethodId;
       }
-      const paymentIntent = await this.stripe.paymentIntents.create(
-        {
-          amount: payload.amount,
-          automatic_payment_methods: {
-            enabled: true,
-          },
-          currency,
-          customer: stripeCustomerId,
-          metadata,
-        },
-        checkoutSessionId
-          ? { idempotencyKey: `payment-intent:${checkoutSessionId}` }
-          : undefined,
-      );
+      const paymentIntent = resumeId
+        ? await this.stripe.paymentIntents.retrieve(resumeId)
+        : await this.stripe.paymentIntents.create(
+            {
+              amount: payload.amount,
+              automatic_payment_methods: {
+                enabled: true,
+              },
+              currency,
+              customer: stripeCustomerId,
+              metadata,
+            },
+            checkoutSessionId
+              ? { idempotencyKey: `payment-intent:${checkoutSessionId}` }
+              : undefined,
+          );
       const ephemeralKey =
         await this.createCustomerEphemeralKey(stripeCustomerId);
 
@@ -417,7 +480,10 @@ export class StripePaymentService {
         event.type === "payment_intent.canceled" ||
         event.type === "payment_intent.processing"
       ) {
-        await this.syncPaymentIntent(event.data.object as Stripe.PaymentIntent);
+        const latest = await this.stripe.paymentIntents.retrieve(
+          (event.data.object as Stripe.PaymentIntent).id,
+        );
+        await this.syncPaymentIntent(latest);
       }
 
       this.logger.log(`Handled Stripe webhook ${event.type}`);
@@ -430,12 +496,38 @@ export class StripePaymentService {
 
   private async syncPaymentIntent(paymentIntent: Stripe.PaymentIntent) {
     const paymentStatus = this.mapPaymentIntentStatus(paymentIntent.status);
+    const known = await this.prisma.paymentTransaction.findUnique({
+      where: { paymentIntentId: paymentIntent.id },
+    });
+    if (
+      known &&
+      [
+        PaymentStatus.SUCCEEDED,
+        PaymentStatus.REFUNDED,
+        PaymentStatus.PARTIALLY_REFUNDED,
+      ].includes(known.status as any) &&
+      paymentStatus !== PaymentStatus.SUCCEEDED
+    )
+      return;
+    if (
+      known &&
+      [PaymentStatus.REFUNDED, PaymentStatus.PARTIALLY_REFUNDED].includes(
+        known.status as any,
+      )
+    )
+      return;
     const orderId = paymentIntent.metadata?.orderId;
+    const checkoutQuote = paymentIntent.metadata?.checkoutQuoteId
+      ? await this.prisma.checkoutQuote.findUnique({
+          where: { id: paymentIntent.metadata.checkoutQuoteId },
+        })
+      : null;
 
     await this.prisma.paymentTransaction.upsert({
       create: {
         amount: paymentIntent.amount,
         currency: paymentIntent.currency,
+        customerId: checkoutQuote?.customerId,
         metadata: paymentIntent.metadata as Prisma.InputJsonValue,
         orderId,
         paymentIntentId: paymentIntent.id,
@@ -454,6 +546,7 @@ export class StripePaymentService {
     });
 
     await this.syncOrderStatus(paymentIntent.id, paymentStatus, orderId);
+    await this.quotes.recordVerified(paymentIntent);
   }
 
   private async createPendingOrder(
@@ -465,6 +558,8 @@ export class StripePaymentService {
         amount: payload.amount,
         customer: payload.customer,
         customerId: payload.customerId,
+        checkoutSessionId: payload.checkoutSessionId,
+        idempotencyKey: payload.idempotencyKey,
         metadata: payload.metadata,
         order: payload.order,
         orderId: payload.orderId,
@@ -624,18 +719,22 @@ export class StripePaymentService {
   }
 
   private toRpcException(error: unknown, code: string) {
-    const message =
-      error instanceof Stripe.errors.StripeError
-        ? error.message
-        : error instanceof Error
-          ? error.message
-          : "Payment request failed";
-
-    this.logger.error(`${code}: ${message}`);
-
+    if (error instanceof RpcException) return error;
+    const missingWebhookProof =
+      code === "STRIPE_WEBHOOK_FAILED" &&
+      error instanceof Error &&
+      error.message === "Stripe webhook secret and signature are required.";
+    writeStructuredLog("error", "StripePaymentService", {
+      event: "payment_request_failed",
+      code,
+      error: serverErrorDetails(error),
+    });
     return new RpcException({
       code,
-      message,
+      statusCode: missingWebhookProof ? 400 : 503,
+      message: missingWebhookProof
+        ? "Stripe webhook secret and signature are required."
+        : "Payment service request failed. Retry the same checkout or check its status.",
     });
   }
 }

@@ -1,3 +1,5 @@
+import { CartPricingService } from "../pricing/cart-pricing.service";
+import { commerceRpc } from "@app/dto";
 import { Controller } from "@nestjs/common";
 import { MessagePattern, Payload } from "@nestjs/microservices";
 import { MENU_PATTERNS } from "@app/common";
@@ -6,7 +8,15 @@ import { MenuCatalogService } from "./menu-catalog.service";
 
 @Controller()
 export class MenuCatalogController {
-  constructor(private readonly menuCatalogService: MenuCatalogService) {}
+  constructor(
+    private readonly menuCatalogService: MenuCatalogService,
+    private readonly pricing: CartPricingService,
+  ) {}
+
+  @MessagePattern(MENU_PATTERNS.PRICE_CART)
+  priceCart(@Payload() payload: unknown) {
+    return commerceRpc(() => this.pricing.price(payload));
+  }
 
   @MessagePattern(MENU_PATTERNS.GET_BOOTSTRAP)
   getBootstrap() {

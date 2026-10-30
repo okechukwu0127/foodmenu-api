@@ -1,0 +1,473 @@
+{
+  "enabled": true,
+  "capabilities": {
+    "chat": true,
+    "guests": true,
+    "profiles": true,
+    "recommendations": true,
+    "commerce": true
+  },
+  "supportedLocales": ["en"],
+  "defaultLocale": "en",
+  "content": {
+    "welcome": {
+      "en": "Your Personal\nFood Concierge"
+    },
+    "explanation": {
+      "en": "Just chat or speak. I'll help you discover, customise and order your perfect meal."
+    },
+    "onboardingExplanation": {
+      "en": "I can recommend better meals if I understand your preferences. You can skip this anytime."
+    },
+    "chatGreeting": {
+      "en": "Hi! I’m Eazy Eat AI 👋\nWhat are you craving today?"
+    },
+    "chatStarters": [
+      {
+        "id": "something-spicy",
+        "label": {
+          "en": "Something spicy"
+        },
+        "prompt": {
+          "en": "Recommend something spicy for me."
+        },
+        "icon": "flame"
+      },
+      {
+        "id": "pizza-tonight",
+        "label": {
+          "en": "Pizza tonight"
+        },
+        "prompt": {
+          "en": "Show me pizza options for tonight."
+        },
+        "icon": "pizza"
+      },
+      {
+        "id": "healthy-meal",
+        "label": {
+          "en": "Healthy meal"
+        },
+        "prompt": {
+          "en": "Recommend a healthy meal based on my preferences."
+        },
+        "icon": "leaf"
+      },
+      {
+        "id": "within-budget",
+        "label": {
+          "en": "Under £15"
+        },
+        "prompt": {
+          "en": "Recommend meals costing no more than £15."
+        },
+        "icon": "wallet"
+      },
+      {
+        "id": "two-people",
+        "label": {
+          "en": "For 2 people"
+        },
+        "prompt": {
+          "en": "Recommend a meal suitable for two people."
+        },
+        "icon": "users"
+      },
+      {
+        "id": "surprise-me",
+        "label": {
+          "en": "Surprise me"
+        },
+        "prompt": {
+          "en": "Surprise me with a meal based on my dining profile."
+        },
+        "icon": "sparkles"
+      }
+    ]
+  },
+  "questions": [
+    {
+      "id": "favorite-categories",
+      "scope": "profile",
+      "input": "multiple",
+      "label": {
+        "en": "What type of food do you enjoy most?"
+      },
+      "required": false,
+      "optionSource": "menu-categories",
+      "options": [],
+      "limits": {
+        "maxSelections": 6
+      }
+    },
+    {
+      "id": "allergies",
+      "scope": "account",
+      "input": "multiple",
+      "label": {
+        "en": "Your personal allergies"
+      },
+      "required": false,
+      "options": [
+        {
+          "id": "unknown",
+          "label": {
+            "en": "Not provided"
+          },
+          "exclusive": true
+        },
+        {
+          "id": "none-known",
+          "label": {
+            "en": "No known allergies"
+          },
+          "exclusive": true,
+          "effect": {
+            "kind": "none-known"
+          }
+        },
+        {
+          "id": "milk",
+          "label": {
+            "en": "Milk"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "allergen",
+            "value": "milk"
+          }
+        },
+        {
+          "id": "eggs",
+          "label": {
+            "en": "Eggs"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "allergen",
+            "value": "eggs"
+          }
+        },
+        {
+          "id": "fish",
+          "label": {
+            "en": "Fish"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "allergen",
+            "value": "fish"
+          }
+        },
+        {
+          "id": "shellfish",
+          "label": {
+            "en": "Shellfish"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "allergen",
+            "value": "shellfish"
+          }
+        },
+        {
+          "id": "peanuts",
+          "label": {
+            "en": "Peanuts"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "allergen",
+            "value": "peanuts"
+          }
+        },
+        {
+          "id": "tree-nuts",
+          "label": {
+            "en": "Tree-Nuts"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "allergen",
+            "value": "tree-nuts"
+          }
+        },
+        {
+          "id": "soy",
+          "label": {
+            "en": "Soy"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "allergen",
+            "value": "soy"
+          }
+        },
+        {
+          "id": "wheat",
+          "label": {
+            "en": "Wheat"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "allergen",
+            "value": "wheat"
+          }
+        },
+        {
+          "id": "sesame",
+          "label": {
+            "en": "Sesame"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "allergen",
+            "value": "sesame"
+          }
+        }
+      ],
+      "limits": {
+        "maxSelections": 11
+      }
+    },
+    {
+      "id": "diet",
+      "scope": "account",
+      "input": "multiple",
+      "label": {
+        "en": "Your dietary restrictions"
+      },
+      "required": false,
+      "options": [
+        {
+          "id": "vegetarian",
+          "label": {
+            "en": "Vegetarian"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "diet",
+            "value": "vegetarian"
+          }
+        },
+        {
+          "id": "vegan",
+          "label": {
+            "en": "Vegan"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "diet",
+            "value": "vegan"
+          }
+        },
+        {
+          "id": "halal",
+          "label": {
+            "en": "Halal"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "diet",
+            "value": "halal"
+          }
+        },
+        {
+          "id": "gluten-free",
+          "label": {
+            "en": "Gluten-Free"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "diet",
+            "value": "gluten-free"
+          }
+        }
+      ],
+      "limits": {
+        "maxSelections": 4
+      }
+    },
+    {
+      "id": "occasion-diet",
+      "scope": "profile",
+      "input": "multiple",
+      "label": {
+        "en": "Additional dietary preferences"
+      },
+      "required": false,
+      "options": [
+        {
+          "id": "vegetarian",
+          "label": {
+            "en": "Vegetarian"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "diet",
+            "value": "vegetarian"
+          }
+        },
+        {
+          "id": "vegan",
+          "label": {
+            "en": "Vegan"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "diet",
+            "value": "vegan"
+          }
+        },
+        {
+          "id": "halal",
+          "label": {
+            "en": "Halal"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "diet",
+            "value": "halal"
+          }
+        },
+        {
+          "id": "gluten-free",
+          "label": {
+            "en": "Gluten-Free"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "diet",
+            "value": "gluten-free"
+          }
+        }
+      ],
+      "limits": {
+        "maxSelections": 4
+      }
+    },
+    {
+      "id": "budget",
+      "scope": "profile",
+      "input": "single",
+      "label": {
+        "en": "Budget per meal"
+      },
+      "required": false,
+      "options": [
+        {
+          "id": "under-15",
+          "label": {
+            "en": "Up to £15"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "budget",
+            "maxMinor": 1500,
+            "currency": "GBP"
+          }
+        },
+        {
+          "id": "under-25",
+          "label": {
+            "en": "Up to £25"
+          },
+          "exclusive": false,
+          "effect": {
+            "kind": "budget",
+            "maxMinor": 2500,
+            "currency": "GBP"
+          }
+        }
+      ],
+      "limits": {}
+    },
+    {
+      "id": "spice",
+      "scope": "profile",
+      "input": "single",
+      "label": {
+        "en": "Spice preference"
+      },
+      "required": false,
+      "options": [
+        {
+          "id": "mild",
+          "label": {
+            "en": "Mild"
+          },
+          "exclusive": false
+        },
+        {
+          "id": "medium",
+          "label": {
+            "en": "Medium"
+          },
+          "exclusive": false
+        },
+        {
+          "id": "hot",
+          "label": {
+            "en": "Hot"
+          },
+          "exclusive": false
+        }
+      ],
+      "limits": {}
+    },
+    {
+      "id": "servings",
+      "scope": "profile",
+      "input": "number",
+      "label": {
+        "en": "Number of diners"
+      },
+      "required": false,
+      "options": [],
+      "limits": {
+        "min": 1,
+        "max": 20
+      }
+    }
+  ],
+  "stages": [
+    {
+      "id": "food-tastes",
+      "label": {
+        "en": "Favourite foods"
+      },
+      "questionIds": ["favorite-categories"]
+    },
+    {
+      "id": "personal",
+      "label": {
+        "en": "Personal restrictions"
+      },
+      "questionIds": ["allergies", "diet"]
+    },
+    {
+      "id": "occasion",
+      "label": {
+        "en": "This dining profile"
+      },
+      "questionIds": ["occasion-diet", "budget", "spice", "servings"]
+    }
+  ],
+  "profileLimits": {
+    "maxCount": 10,
+    "minNameLength": 1,
+    "maxNameLength": 100,
+    "maxImportBatch": 20
+  },
+  "chatLimits": {
+    "textLength": 2000,
+    "historyMessages": 30,
+    "contextCharacters": 24000,
+    "outputTokens": 1200,
+    "toolSteps": 4,
+    "toolResults": 6,
+    "menuScanPages": 5,
+    "guestTurns": 10,
+    "pageSize": 30
+  }
+}

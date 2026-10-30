@@ -38,18 +38,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
           ? "INTERNAL_SERVER_ERROR"
           : "REQUEST_FAILED";
 
-    if (statusCode >= 500) {
-      writeStructuredLog("error", "HttpExceptionFilter", {
-        event: "server_error",
-        requestId: response.getHeader("X-Request-Id"),
-        method: request.method,
-        path: request.route?.path ?? "[unmatched request]",
-        statusCode,
-        code,
-        message: "Server request failed",
-        error: serverErrorDetails(exception),
-      });
-    }
+    writeStructuredLog("error", "HttpExceptionFilter", {
+      event: statusCode >= 500 ? "server_error" : "http_response_error",
+      requestId: response.getHeader("X-Request-Id"),
+      method: request.method,
+      path: request.route?.path ?? "[unmatched request]",
+      statusCode,
+      code,
+      message: statusCode >= 500 ? "Server request failed" : "Request rejected",
+      response: { success: false, statusCode, error: { code } },
+      // Keep response details and free-text messages out of operational logs.
+      // They can contain submitted values, preference notes or provider data.
+      error: statusCode >= 500 ? serverErrorDetails(exception) : undefined,
+    });
 
     response.status(statusCode).json({
       error: {

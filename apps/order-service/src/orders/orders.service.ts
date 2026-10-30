@@ -132,15 +132,23 @@ export class OrdersService {
       ...(orderStatus ? { status: orderStatus } : {}),
     };
 
+    const eligibleStatus =
+      orderStatus === OrderStatus.PAID || orderStatus === OrderStatus.CANCELED
+        ? {
+            status: {
+              in: [OrderStatus.PENDING_PAYMENT, OrderStatus.PAYMENT_FAILED],
+            },
+          }
+        : {};
     if (payload.orderId) {
       await this.prisma.order.updateMany({
         data,
-        where: { id: payload.orderId },
+        where: { id: payload.orderId, ...eligibleStatus },
       });
     } else {
       await this.prisma.order.updateMany({
         data,
-        where: { paymentIntentId: payload.paymentIntentId },
+        where: { paymentIntentId: payload.paymentIntentId, ...eligibleStatus },
       });
     }
 
@@ -583,6 +591,14 @@ export class OrdersService {
     orderId: string,
     paymentIntentId: string,
   ) {
+    const paidOrder = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+    if (
+      (paidOrder?.metadata as Record<string, unknown> | null)?.fulfilment ===
+      "pickup"
+    )
+      return null;
     const existingFulfilment = await this.prisma.orderFulfilment.findFirst({
       include: { provider: true },
       where: { orderId },

@@ -1,3 +1,4 @@
+import { CheckoutQuotesService } from "./checkout/checkout-quotes.service";
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ClientsModule, Transport } from "@nestjs/microservices";
@@ -17,6 +18,18 @@ import { StripePaymentService } from "./stripe/stripe-payment.service";
     DatabaseModule,
     ClientsModule.registerAsync([
       {
+        name: "MENU_SERVICE",
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (c: ConfigService) => ({
+          transport: Transport.TCP,
+          options: {
+            host: c.get("MENU_SERVICE_HOST", "127.0.0.1"),
+            port: c.get("MENU_SERVICE_PORT", 4020),
+          },
+        }),
+      },
+      {
         imports: [ConfigModule],
         inject: [ConfigService],
         name: "ORDER_SERVICE",
@@ -30,6 +43,6 @@ import { StripePaymentService } from "./stripe/stripe-payment.service";
       },
     ]),
   ],
-  providers: [StripePaymentService],
+  providers: [StripePaymentService, CheckoutQuotesService],
 })
 export class PaymentServiceModule {}

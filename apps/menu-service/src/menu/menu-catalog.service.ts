@@ -16,6 +16,7 @@ const catalogFoodWhere = {
 } satisfies Prisma.FoodItemWhereInput;
 
 const foodSelect = {
+  dietaryInfo: true,
   appetizerOptions: true,
   calories: true,
   categoryId: true,
@@ -129,7 +130,7 @@ export class MenuCatalogService {
 
   async getCategories() {
     const categories = await this.prisma.category.findMany({
-      ...activeOrder,
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
       select: {
         displayName: true,
         icon: true,
@@ -181,7 +182,7 @@ export class MenuCatalogService {
 
     return {
       items,
-      nextCursor: hasNextPage ? foodItems[take]?.slug ?? null : null,
+      nextCursor: hasNextPage ? (foodItems[take]?.slug ?? null) : null,
     };
   }
 
@@ -421,8 +422,12 @@ export class MenuCatalogService {
     return foodItems.map(this.mapFoodItem);
   }
 
-  private mapFoodItem(foodItem: Prisma.FoodItemGetPayload<{ select: typeof foodSelect }>) {
+  private mapFoodItem(
+    foodItem: Prisma.FoodItemGetPayload<{ select: typeof foodSelect }>,
+  ) {
     return {
+      dietaryInfo: foodItem.dietaryInfo,
+      appetizerOptions: foodItem.appetizerOptions ?? [],
       calories: foodItem.calories,
       categoryId: foodItem.categoryId,
       currency: foodItem.currency,
@@ -438,21 +443,19 @@ export class MenuCatalogService {
       modifierGroupIds: foodItem.modifierGroups.map(
         ({ modifierGroup }) => modifierGroup.id,
       ),
-      modifierGroups: foodItem.modifierGroups.map(
-        ({ modifierGroup }) => ({
-          ...modifierGroup,
-          description: modifierGroup.descriptionData ?? modifierGroup.subtitle,
-          name: modifierGroup.nameData ?? modifierGroup.title,
-          options: modifierGroup.options.map((option) => ({
-            ...option,
-            description: option.descriptionData ?? option.description,
-            image: option.imageUrl,
-            name: option.nameData ?? option.name,
-            priceOffset: option.priceOffset / 100,
-          })),
-          required: modifierGroup.isRequired,
-        }),
-      ),
+      modifierGroups: foodItem.modifierGroups.map(({ modifierGroup }) => ({
+        ...modifierGroup,
+        description: modifierGroup.descriptionData ?? modifierGroup.subtitle,
+        name: modifierGroup.nameData ?? modifierGroup.title,
+        options: modifierGroup.options.map((option) => ({
+          ...option,
+          description: option.descriptionData ?? option.description,
+          image: option.imageUrl,
+          name: option.nameData ?? option.name,
+          priceOffset: option.priceOffset / 100,
+        })),
+        required: modifierGroup.isRequired,
+      })),
       name: foodItem.nameData ?? foodItem.name,
       prepTimeMinutes: foodItem.prepTimeMinutes,
       price: foodItem.price / 100,

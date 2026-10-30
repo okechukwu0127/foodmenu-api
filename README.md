@@ -1,780 +1,592 @@
-# Mobile authentication
-
-Email/password and Google signup/signin are implemented. Checkout, payment and order routes now require a FoodMenu bearer token. Follow the [step-by-step mobile authentication setup](docs/mobile-authentication.md) for Google Cloud configuration, API examples, migrations and app integration.
-
-Customer address APIs are documented in the [saved addresses guide](docs/customer-addresses.md), including the database migration and Expo offline queue integration changes.
-
-Form signup now requires [email activation](docs/email-verification.md). Configure SMTP to send codes; signin on an inactive account returns `403 ACCOUNT_NOT_ACTIVATED`.
-
-Authenticated [profile photo uploads](docs/profile-photos.md) are available at `POST /api/v1/auth/me/photo`; profile queries return the uploaded image URL.
-
-The [Password Manager API](docs/password-management.md) is available at `POST /api/v1/auth/change-password`; it verifies the current password and revokes all sessions after a successful change.
-
 # foodMenu API
 
-Production-ready NestJS monorepo backend for the foodMenu mobile app.
+NestJS and TypeScript backend for the foodMenu mobile application. It exposes a
+versioned HTTP API through an API Gateway and runs menu, identity, order, and
+payment workloads as separate services. PostgreSQL is the system of record,
+Prisma manages the schema, Stripe handles payments, and Stuart can dispatch and
+track deliveries.
 
-The backend currently implements Stripe payments, order persistence, and the
-public Menu Catalog API, while keeping the project ready for future services
-such as wallet and notifications. Authentication and profile management run in the dedicated [identity service](docs/identity-service.md).
+This repository contains the backend only. The mobile app is a separate
+project; see the API and mobile integration guides below.
+
+## Contents
+
+- [Features](#features)
+- [Architecture](#architecture)
+- [Requirements](#requirements)
+- [Quick start](#quick-start)
+- [Docker Compose](#docker-compose)
+- [Environment variables](#environment-variables)
+- [Database, migrations, and seed data](#database-migrations-and-seed-data)
+- [HTTP API reference](#http-api-reference)
+- [Authentication and request conventions](#authentication-and-request-conventions)
+- [Stripe checkout flow](#stripe-checkout-flow)
+- [AI Food Concierge](#ai-food-concierge)
+- [Documentation index](#documentation-index)
+- [Commands and tests](#commands-and-tests)
+- [Troubleshooting](#troubleshooting)
+
+## Features
+
+- Public menu catalog, search/filtering, categories, food details, deals, and
+  modifier data.
+- Email/password and Google authentication, verified email activation,
+  bearer-token sessions, customer profiles, saved addresses, and profile photos.
+- Server-priced checkout quotes, saved payment methods, Stripe PaymentIntents,
+  payment status, refunds, and signed Stripe webhooks.
+- Persistent orders, fulfilment records, delivery tracking, and Stuart dispatch
+  and webhook integration.
+- AI Food Concierge chat, preference profiles, account restrictions, guest
+  conversations, menu-backed cards, and conversation-based checkout.
+- Swagger/OpenAPI, structured request logging, Prisma migrations, seed scripts,
+  unit tests, and end-to-end tests.
 
 ## Architecture
 
 ```text
 apps/
-  api-gateway/       Public HTTP API consumed by the mobile app
-  menu-service/      Public read menu/catalog data service
-  order-service/     Order, order item, delivery and order status service
-  identity-service/  Authentication, sessions and customer profiles
-  payment-service/   Stripe + payment persistence microservice
+  api-gateway/       Public HTTP API, validation, authentication and routing
+  identity-service/  Accounts, sessions, customer profiles and addresses
+  menu-service/      Menu catalog reads and authoritative cart pricing
+  order-service/     Orders, delivery charge policy, fulfilment and tracking
+  payment-service/   Stripe operations, checkout quotes and payment records
 
 libs/
-  common/            Filters, interceptors, response helpers, message patterns
+  common/            HTTP filters, logging, transport patterns and helpers
   config/            Environment validation
-  database/          Prisma module/service
-  dto/               Shared request/response DTOs
-  errors/            Application error primitives
-  logger/            Logger helpers
-  proto/             Reserved for future gRPC contracts
+  database/          Shared Prisma client/module
+  dto/               Shared request and response contracts
+  errors/            Application error types
+  logger/            Logging utilities
+  proto/             Reserved for possible future gRPC contracts
 
 prisma/
-  schema.prisma      Payment and menu catalog models
-  seed-data/         Full mobile catalog seed snapshot and seed helpers
+  schema.prisma      Database models
+  migrations/        Versioned schema changes
+  seed-data/         Menu catalog source data
+  checkout-policy.json
+                     Initial restaurant checkout and delivery policy
+  ai-concierge-config.json
+                     Initial AI Concierge configuration
+
+docs/                Feature guides and mobile integration instructions
+test/                End-to-end test suites
 ```
 
-The API Gateway communicates with identity-service, payment-service, order-service, and
-menu-service through Nest TCP transport. Stripe SDK usage stays isolated inside
-payment-service, identity-service owns authentication/customer profiles, order-service owns orders/order items, and
-menu-service owns catalog database reads.
+The API Gateway is the only public HTTP service. It communicates with internal
+services over NestJS TCP transport. The payment service calls menu and order
+services to calculate checkout quotes; payment-provider logic stays inside the
+payment service. Do not expose the internal TCP ports to the public internet.
 
-## Local Setup
+## Requirements
+
+- Node.js and npm (use a currently supported Node.js LTS release).
+- PostgreSQL 16 for local development, or Docker Desktop with Compose.
+- A Stripe test secret key for payment-service startup and checkout testing.
+- Optional provider credentials for Google sign-in, email delivery, Google
+  Routes, Stuart delivery, and Gemini AI.
+
+## Quick start
+
+### 1. Install dependencies and configure the environment
 
 ```bash
 cp .env.example .env
 npm install
+```
+
+Edit `.env`. At minimum, set a reachable PostgreSQL `DATABASE_URL` and a valid
+Stripe test `STRIPE_SECRET_KEY` (for example, `sk_test_...`). The sample values
+in `.env.example` are development defaults and placeholders, not production
+credentials. See [Environment variables](#environment-variables).
+
+For a local PostgreSQL installation, create the database/user specified by
+`POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD`, or use the Compose
+instructions below to start PostgreSQL in a container.
+
+### 2. Generate Prisma Client, migrate, and seed the database
+
+For a new local development database:
+
+```bash
 npm run prisma:generate
 npm run prisma:migrate
 npm run prisma:seed
+npm run checkout:seed
+npm run ai:seed
+```
+
+`prisma:migrate` runs `prisma migrate dev` and may prompt for a migration name
+when schema changes are detected. To apply migrations already checked into the
+repository in a fresh or hosted environment, use:
+
+```bash
+npm run prisma:generate
+npm run db:setup
+npm run checkout:seed
+npm run ai:seed
+```
+
+`db:setup` runs `prisma:deploy` followed by the menu/catalog seed. The checkout
+and AI configuration seeds are separate so you can review and publish those
+settings intentionally. The default checkout policy is in
+[`prisma/checkout-policy.json`](prisma/checkout-policy.json); the default AI
+configuration is in [`prisma/ai-concierge-config.json`](prisma/ai-concierge-config.json).
+
+### 3. Start all services
+
+```bash
 npm run start:dev
 ```
 
-For a fresh hosted environment, use deploy migrations instead of development
-migrations:
+This starts the gateway and all four TCP microservices in watch mode. The API
+base URL is `http://localhost:4000/api/v1`; Swagger UI is
+`http://localhost:4000/api/docs`.
+
+Check gateway health:
 
 ```bash
-npm install
-npm run prisma:generate
-npm run db:setup
+curl http://localhost:4000/api/v1/health
 ```
 
-`db:setup` runs:
+For a physical mobile device, use your development machine's LAN IP instead of
+`localhost` in the app's API base URL. For production, use the deployed HTTPS
+gateway URL.
 
-```bash
-npm run prisma:deploy
-npm run prisma:seed
-```
+## Docker Compose
 
-## Docker
+Docker Compose starts PostgreSQL and the backend services. It does not
+automatically apply Prisma migrations, seed the catalog, or publish checkout/AI
+configuration.
 
 ```bash
 cp .env.example .env
+# Set STRIPE_SECRET_KEY in .env to a valid Stripe test key.
 npm run docker:up
 ```
 
-Services:
-
-- API Gateway: `http://localhost:4000`
-  - npm run start:dev:gateway
-- Payment service TCP: `localhost:4010`
-  - npm run start:dev:payment
-- Menu service TCP: `localhost:4020`
-  - npm run start:dev:menu
-- Order service TCP: `localhost:4030`
-  - npm run start:dev:order
-- Identity service TCP: `localhost:4050` (private network in Docker)
-  - npm run start:dev:identity
-- Swagger: `http://localhost:4000/api/docs`
-- OpenAPI JSON: `http://localhost:4000/api/docs-json`
-- Postgres: `localhost:5432`
-- pgAdmin: `http://localhost:5050`
-
-pgAdmin credentials are controlled by:
-
-```text
-PGADMIN_DEFAULT_EMAIL
-PGADMIN_DEFAULT_PASSWORD
-```
-
-## Environment
-
-Required values:
-
-```text
-NODE_ENV
-API_GATEWAY_PORT
-PAYMENT_SERVICE_HOST
-PAYMENT_SERVICE_PORT
-MENU_SERVICE_HOST
-MENU_SERVICE_PORT
-ORDER_SERVICE_HOST
-ORDER_SERVICE_PORT
-IDENTITY_SERVICE_HOST
-IDENTITY_SERVICE_PORT
-IDENTITY_SERVICE_TIMEOUT_MS
-DATABASE_URL
-POSTGRES_USER
-POSTGRES_PASSWORD
-POSTGRES_DB
-PGADMIN_DEFAULT_EMAIL
-PGADMIN_DEFAULT_PASSWORD
-STRIPE_SECRET_KEY
-STRIPE_WEBHOOK_SECRET
-STUART_WEBHOOK_SECRET
-STUART_API_BASE_URL
-STUART_CLIENT_ID
-STUART_CLIENT_SECRET
-STUART_ACCOUNT_ID
-STUART_PICKUP_ADDRESS
-STUART_PICKUP_LATITUDE
-STUART_PICKUP_LONGITUDE
-STUART_PICKUP_PHONE
-STUART_PICKUP_COMPANY
-STUART_PICKUP_EMAIL
-STUART_PICKUP_DELAY_MINUTES
-STUART_PACKAGE_TYPE
-GOOGLE_ROUTES_API_KEY
-FOODMENU_APP_URL
-```
-
-Never commit real Stripe keys.
-
-## Menu Catalog Endpoints
-
-All public HTTP API Gateway responses use the same response envelope:
-
-```json
-{
-  "success": true,
-  "status": "success",
-  "statusCode": 200,
-  "message": "Request successful",
-  "data": {},
-  "path": "/api/v1/example",
-  "timestamp": "2026-09-29T00:00:00.000Z"
-}
-```
-
-Error responses use the same metadata with an `error` object:
-
-```json
-{
-  "success": false,
-  "status": "error",
-  "statusCode": 400,
-  "message": "Invalid request payload",
-  "error": {
-    "code": "REQUEST_FAILED",
-    "details": []
-  },
-  "path": "/api/v1/example",
-  "timestamp": "2026-09-29T00:00:00.000Z"
-}
-```
-
-The mobile app should unwrap the actual payload from `response.data.data`.
-
-### Bootstrap
-
-```bash
-curl http://localhost:4000/api/v1/menu/bootstrap
-```
-
-Response shape:
-
-```json
-{
-  "success": true,
-  "status": "success",
-  "statusCode": 200,
-  "message": "Request successful",
-  "data": {
-    "heroSlides": [],
-    "categories": [],
-    "deals": [],
-    "hotCombos": [],
-    "drinkAddOns": [],
-    "modifierGroups": [],
-    "modifierLabelTranslations": [],
-    "defaultModifierGroupIds": [],
-    "foodItems": []
-  },
-  "path": "/api/v1/menu/bootstrap",
-  "timestamp": "2026-09-29T00:00:00.000Z"
-}
-```
-
-### Categories
-
-```bash
-curl http://localhost:4000/api/v1/menu/categories
-```
-
-### Foods
-
-```bash
-curl "http://localhost:4000/api/v1/menu/foods?categoryId=burgers&isPopular=true&limit=10"
-```
-
-Supported filters:
-
-```text
-categoryId
-search
-isPopular
-limit
-cursor
-page
-```
-
-### Food Details
-
-```bash
-curl http://localhost:4000/api/v1/menu/foods/classic-cheeseburger
-```
-
-### Other Menu Routes
-
-```text
-GET /api/v1/menu/deals
-GET /api/v1/menu/hero-slides
-GET /api/v1/menu/hot-combos
-GET /api/v1/menu/drink-add-ons
-GET /api/v1/menu/modifier-groups
-GET /api/v1/menu/modifier-label-translations
-```
-
-## Payment Endpoints
-
-Payment endpoints also use the standard API response envelope. The payment
-result is returned inside `data`.
-
-### Save Cards With Stripe
-
-The mobile app should collect card details with Stripe UI components only. The
-backend stores safe card metadata and Stripe ids, never raw card numbers.
-
-Create a SetupIntent before confirming the card in the mobile app:
-
-```bash
-curl -X POST http://localhost:4000/api/v1/payments/stripe/setup-intent \
-  -H "Content-Type: application/json" \
-  -d '{"customerId":"customer_123"}'
-```
-
-After the mobile app confirms the SetupIntent with Stripe SDK, save the returned
-payment method id:
-
-```bash
-curl -X POST http://localhost:4000/api/v1/payments/stripe/payment-methods \
-  -H "Content-Type: application/json" \
-  -d '{
-    "customerId": "customer_123",
-    "paymentMethodId": "pm_123",
-    "alias": "Personal Visa",
-    "holderName": "John Doe"
-  }'
-```
-
-List saved cards:
-
-```bash
-curl "http://localhost:4000/api/v1/payments/stripe/payment-methods?customerId=customer_123"
-```
-
-Update a saved card alias/default state:
-
-```bash
-curl -X PATCH http://localhost:4000/api/v1/payments/stripe/payment-methods/card_db_id \
-  -H "Content-Type: application/json" \
-  -d '{"alias":"Work card","isDefault":true}'
-```
-
-Detach and soft-delete a saved card:
-
-```bash
-curl -X DELETE http://localhost:4000/api/v1/payments/stripe/payment-methods/card_db_id
-```
-
-Checkout can now use either the Stripe payment method id or the local saved card
-id:
-
-```json
-{
-  "amount": 2500,
-  "currency": "gbp",
-  "customerId": "customer_123",
-  "checkoutSessionId": "checkout_1791909664130",
-  "savedPaymentMethodId": "card_db_id"
-}
-```
-
-`checkoutSessionId` is the checkout idempotency key. Generate it once when the
-customer starts the checkout/payment attempt and reuse the same value on network
-retries. The backend uses it to reuse the same pending order and Stripe
-idempotency key instead of creating duplicate orders/payment intents.
-
-### Create Payment Intent
-
-```bash
-curl -X POST http://localhost:4000/api/v1/payments/stripe/payment-intent \
-  -H "Content-Type: application/json" \
-  -d '{"amount":2500,"currency":"gbp","orderId":"order_123"}'
-```
-
-Response:
-
-```json
-{
-  "success": true,
-  "status": "success",
-  "statusCode": 201,
-  "message": "Request successful",
-  "data": {
-    "clientSecret": "pi_...",
-    "customerEphemeralKeySecret": "ek_...",
-    "customerId": "cus_...",
-    "paymentIntentId": "pi_...",
-    "status": "requires_payment_method"
-  },
-  "path": "/api/v1/payments/stripe/payment-intent",
-  "timestamp": "2026-09-29T00:00:00.000Z"
-}
-```
-
-The `payment-intent` request is also where the frontend should send the checkout
-order snapshot. Order-service creates the order as `PENDING_PAYMENT`, then
-payment-service updates it through TCP after Stripe status changes.
-
-Pass customer/order data like this:
-
-```json
-{
-  "amount": 2897,
-  "currency": "gbp",
-  "customer": {
-    "firstName": "John",
-    "lastName": "Doe",
-    "email": "john@example.com",
-    "phone": "+447700900123"
-  },
-  "order": {
-    "deliveryFee": 199,
-    "deliveryAddress": {
-      "line1": "23 King Street",
-      "city": "London",
-      "postcode": "SW1A 1AA",
-      "country": "GB"
-    },
-    "items": [
-      {
-        "foodItemId": "food-001",
-        "categoryId": "burgers",
-        "name": "Smoky BBQ Burger",
-        "description": "Juicy beef patty with smoky BBQ sauce.",
-        "imageUrl": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200",
-        "quantity": 2,
-        "unitAmount": 1299,
-        "modifiers": [
-          {
-            "groupId": "mod_burger_size",
-            "groupName": "Choose your burger size",
-            "optionId": "opt_burger_large",
-            "optionName": "Large",
-            "priceOffset": 200,
-            "quantity": 1
-          }
-        ],
-        "itemSnapshot": {
-          "tags": ["beef", "spicy"],
-          "rating": 4.8,
-          "calories": 720
-        }
-      }
-    ]
-  }
-}
-```
-
-## Order Endpoints
-
-Order reads go through the API Gateway and are served by order-service.
-
-Use this endpoint for the app order hook. Without `statusGroup`, it returns the
-three tab groups in one response:
-
-```bash
-curl "http://localhost:4000/api/v1/orders?customerId=customer_123"
-```
-
-Response `data` shape:
-
-```json
-{
-  "active": [],
-  "completed": [],
-  "cancelled": [],
-  "counts": {
-    "active": 0,
-    "completed": 0,
-    "cancelled": 0
-  }
-}
-```
-
-Each order includes `primaryItem`, detailed `items`, `statusGroup`,
-`statusLabel`, and UI action flags such as `canCancel`, `canTrack`,
-`canReorder`, and `canViewReceipt`. Active orders also include
-`latestFulfilment` when delivery tracking has been created.
-
-You can also fetch just one tab:
-
-```bash
-curl "http://localhost:4000/api/v1/orders?customerId=customer_123&statusGroup=active"
-```
-
-For the detail screen:
-
-```bash
-curl http://localhost:4000/api/v1/orders/FM-1720000000000-ABC123
-```
-
-You can pass either the internal order id or the public `orderNumber`.
-
-### Fulfilment
-
-Fulfilment records are owned by order-service and linked to both the order and
-the fulfilment provider. This keeps Stuart, Uber Direct, or manual delivery data
-out of the main order row while still giving the mobile app one clean order
-payload.
-
-List enabled fulfilment providers:
-
-```bash
-curl http://localhost:4000/api/v1/orders/fulfilment/providers
-```
-
-Create a fulfilment record for an order:
-
-```bash
-curl -X POST http://localhost:4000/api/v1/orders/FM-1720000000000-ABC123/fulfilment \
-  -H "Content-Type: application/json" \
-  -d '{
-    "providerCode": "STUART",
-    "providerJobId": "job_123",
-    "providerDeliveryId": "delivery_123",
-    "status": "CREATED",
-    "clientTrackingUrl": "https://tracking.stuart.com/customer/abc"
-  }'
-```
-
-Get tracking state for an order:
-
-```bash
-curl http://localhost:4000/api/v1/orders/FM-1720000000000-ABC123/tracking
-```
-
-Tracking responses include pickup/dropoff locations and a `route.coordinates`
-array for mobile map polylines. If `GOOGLE_ROUTES_API_KEY` is configured,
-order-service calls Google Routes API, decodes the returned road-following
-polyline, and caches the route briefly to avoid calling Google on every polling
-request.
-
-```json
-{
-  "pickup": {
-    "address": "127 Humber Avenue, Coventry, CV1 2AU",
-    "location": {
-      "latitude": 52.42441177368164,
-      "longitude": -1.5433413982391357
-    }
-  },
-  "dropoff": {
-    "address": "1 Alma St, Coventry CV1 5QA, UK",
-    "location": {
-      "latitude": 52.4093664,
-      "longitude": -1.4991671
-    }
-  },
-  "route": {
-    "coordinates": []
-  }
-}
-```
-
-Route coordinates are cached by order/status/origin/destination. The cache is
-reused for up to 60 seconds while the courier has moved less than 50 meters. If
-Google Routes fails or the API key is missing, the endpoint still returns
-tracking data with `route.coordinates: []`.
-
-Update fulfilment status, courier location, or ETA:
-
-```bash
-curl -X PATCH http://localhost:4000/api/v1/orders/FM-1720000000000-ABC123/fulfilment/clx_fulfilment_id \
-  -H "Content-Type: application/json" \
-  -d '{
-    "status": "DROPOFF_STARTED",
-    "courierName": "Alex Rider",
-    "courierPhone": "+447700900123",
-    "courierLatitude": 51.5072,
-    "courierLongitude": -0.1276,
-    "estimatedDropoffAt": "2026-10-06T13:15:00.000Z"
-  }'
-```
-
-The fulfilment response includes provider details, courier details when
-available, current courier coordinates, ETA fields, tracking links, and a
-mobile-friendly status label. Stuart integration can later update this record
-from Stuart webhook callbacks without changing the order list endpoint.
-
-When Stripe payment succeeds, order-service automatically creates the first
-fulfilment record for the paid order using the active `STUART` provider. If
-Stuart credentials and pickup settings are configured, order-service also calls
-Stuart's `POST /v2/jobs` endpoint, saves the returned job id, delivery id, and
-tracking URL, and waits for Stuart webhook events to keep delivery progress in
-sync.
-
-Required Stuart dispatch configuration:
-
-```text
-STUART_API_BASE_URL=https://api.sandbox.stuart.com
-STUART_CLIENT_ID=<your Stuart client id>
-STUART_CLIENT_SECRET=<your Stuart client secret>
-STUART_ACCOUNT_ID=<your Stuart account id>
-STUART_PICKUP_ADDRESS=<restaurant pickup address>
-STUART_PICKUP_LATITUDE=<restaurant latitude>
-STUART_PICKUP_LONGITUDE=<restaurant longitude>
-STUART_PICKUP_COMPANY=FoodMenu
-STUART_PICKUP_FIRST_NAME=FoodMenu
-STUART_PICKUP_LAST_NAME=Kitchen
-STUART_PICKUP_PHONE=<restaurant phone in E.164 format>
-STUART_PICKUP_EMAIL=<restaurant email>
-STUART_PICKUP_DELAY_MINUTES=15
-STUART_PACKAGE_TYPE=medium
-STUART_FALLBACK_CUSTOMER_PHONE=<fallback phone in E.164 format>
-GOOGLE_ROUTES_API_KEY=<server-side Google Routes API key>
-```
-
-The mobile payment intent request must include a complete customer phone number
-and delivery address, because those values are sent to Stuart:
-
-```json
-{
-  "customer": {
-    "firstName": "John",
-    "lastName": "Doe",
-    "email": "john@example.com",
-    "phone": "+447700900123"
-  },
-  "order": {
-    "deliveryAddress": {
-      "line1": "23 Ethelbert Road",
-      "city": "London",
-      "postcode": "SW20 8QD",
-      "country": "GB",
-      "latitude": 51.5072,
-      "longitude": -0.1276,
-      "instructions": "3rd floor on the right"
-    }
-  }
-}
-```
-
-Production Stuart base URL:
-
-```text
-STUART_API_BASE_URL=https://api.stuart.com
-```
-
-### Stuart Webhook
-
-```text
-POST /api/v1/webhooks/stuart
-```
-
-Use this URL in the Stuart dashboard after the API is deployed:
-
-```text
-https://your-api-domain.com/api/v1/webhooks/stuart
-```
-
-For local testing, expose the API Gateway with ngrok and use the ngrok URL:
-
-```text
-https://your-ngrok-url.ngrok-free.app/api/v1/webhooks/stuart
-```
-
-If `STUART_WEBHOOK_SECRET` is set, add this custom header in the Stuart webhook
-configuration:
-
-```text
-X-Stuart-Webhook-Secret: <same value as STUART_WEBHOOK_SECRET>
-```
-
-The webhook handler supports Stuart payloads that identify your order through
-`details.package.reference`, `data.clientReference`, or `data.client_reference`.
-It updates the matching `OrderFulfilment` with Stuart delivery ids, tracking
-URLs, driver details, ETA values, courier location, cancellation/failure reason,
-and delivery status.
-
-### Confirm Payment
-
-```bash
-curl -X POST http://localhost:4000/api/v1/payments/stripe/confirm \
-  -H "Content-Type: application/json" \
-  -d '{"paymentIntentId":"pi_..."}'
-```
-
-### Payment Status
-
-```bash
-curl http://localhost:4000/api/v1/payments/stripe/status/pi_...
-```
-
-### Refund
-
-```bash
-curl -X POST http://localhost:4000/api/v1/payments/stripe/refund \
-  -H "Content-Type: application/json" \
-  -d '{"paymentIntentId":"pi_...","amount":500,"reason":"requested_by_customer"}'
-```
-
-### Stripe Webhook
-
-```text
-POST /api/v1/webhooks/stripe
-```
-
-If `STRIPE_WEBHOOK_SECRET` is set, the service verifies the Stripe signature.
-
-## Stripe Testing
-
-Use Stripe test keys and test card:
-
-```text
-4242 4242 4242 4242
-Any future expiry
-Any CVC
-Any postcode
-```
-
-## Prisma
+In another terminal, apply and seed the database from the repository:
 
 ```bash
 npm run prisma:generate
-npm run prisma:migrate
-npm run prisma:deploy
-npm run prisma:seed
 npm run db:setup
-npm run prisma:studio
+npm run checkout:seed
+npm run ai:seed
 ```
 
-Use `prisma:migrate` for local development when creating new migrations. Use
-`prisma:deploy` or `db:setup` on hosted environments.
+Compose sets internal service hostnames (`menu-service`, `order-service`,
+`payment-service`, and `identity-service`) for containers. For running the
+services directly on the host, use the `127.0.0.1` values from `.env.example`.
 
-Seed data lives in `prisma/seed-data/`. The menu catalog is populated from
-`prisma/seed-data/mobile-catalog.seed.json`, which mirrors the previous React
-Native local data from `src/data/menuData.ts`, `src/data/drinksData.ts`, and
-`src/data/heroSlides.ts`.
+| Service              | Local address                         |
+| -------------------- | ------------------------------------- |
+| API Gateway          | `http://localhost:4000`               |
+| Swagger UI           | `http://localhost:4000/api/docs`      |
+| OpenAPI JSON         | `http://localhost:4000/api/docs-json` |
+| PostgreSQL           | `localhost:5432`                      |
+| Payment TCP service  | `localhost:4010`                      |
+| Menu TCP service     | `localhost:4020`                      |
+| Order TCP service    | `localhost:4030`                      |
+| Identity TCP service | `localhost:4050`                      |
 
-Current local catalog seed size:
+The TCP services are internal application transports, not HTTP endpoints.
+pgAdmin is not enabled in the current `docker-compose.yml`.
 
-```text
-categories: 7
-foodItems: 10
-foodImages: 50
-deals: 6
-heroSlides: 3
-hotCombos: 5
-drinkAddOns: 4
-appetizerOptions: 4
-modifierGroups: 15
-modifierOptions: 54
-defaultModifierGroups: 41
-fulfilmentProviders: 3
-```
-
-The seed clears and repopulates the menu catalog tables during development. It
-does not clear payment transaction tables.
-
-## Tests
+Stop Compose services with:
 
 ```bash
-npm run test
-npm run test:e2e
+npm run docker:down
 ```
 
-## Adding the Next Microservice
+## Environment variables
 
-1. Create a new app under `apps/<service-name>`.
-2. Add TCP message pattern constants in `libs/common/src/constants`.
-3. Add shared DTOs in `libs/dto`.
-4. Register a `ClientsModule` provider in api-gateway.
-5. Keep SDK/vendor-specific logic inside the owning service.
-6. Expose only mobile-safe HTTP routes through api-gateway.
+All settings are read from `.env` in local development and validated by
+[`libs/config/src/env.validation.ts`](libs/config/src/env.validation.ts).
+Secrets must remain server-side: do not commit `.env`, Stripe secrets, SMTP
+passwords, OAuth secrets, or provider tokens. `.env.example` documents the
+expected keys and safe local defaults.
 
-## Migrating Mobile Menu Data
+### Core application and database
 
-The React Native app can move from local `menuData.ts`, `drinksData.ts`, and
-`heroSlides.ts` files to `GET /api/v1/menu/bootstrap` first. After bootstrap is
-stable, individual screens can switch to smaller endpoints such as
-`/menu/foods`, `/menu/categories`, and `/menu/modifier-groups`.
+| Variable                | Required / default                   | Purpose                                                                                          |
+| ----------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `NODE_ENV`              | Optional; `development`              | `development`, `test`, or `production`.                                                          |
+| `DATABASE_URL`          | **Required**                         | PostgreSQL connection string used by Prisma.                                                     |
+| `API_GATEWAY_PORT`      | Optional; `4000`                     | Public HTTP listener port.                                                                       |
+| `FOODMENU_APP_URL`      | Optional; `*`                        | Allowed CORS origin. Set the exact production app origin where applicable.                       |
+| `PUBLIC_ASSET_BASE_URL` | Optional; `http://localhost:4000`    | Public base URL for uploaded profile-photo assets.                                               |
+| `POSTGRES_USER`         | Optional; `foodmenu`                 | Compose PostgreSQL username.                                                                     |
+| `POSTGRES_PASSWORD`     | Optional; `foodmenu`                 | Compose PostgreSQL password; replace outside local development.                                  |
+| `POSTGRES_DB`           | Optional; `foodmenu_api`             | Compose database name.                                                                           |
+| `HTTP_LOG_HEADERS`      | Optional; `false`                    | Opt into sanitized request-header logging.                                                       |
+| `HTTP_LOG_BODY`         | Optional; `false`                    | Opt into sanitized request-body logging. Keep disabled in production unless explicitly reviewed. |
+| `LOG_COLOR`             | Optional; `auto`                     | Log color behavior: `auto`, `always`, or `never`.                                                |
+| `LOG_PRETTY`            | Optional; `.env.example` sets `true` | Pretty-print development logs where supported.                                                   |
 
-Because API Gateway responses are enveloped, the mobile API client should unwrap
-the backend response before returning data to screens:
+### Internal service connections
 
-```ts
-const response = await apiClient.get("/menu/bootstrap");
-return response.data.data;
+These are TCP service endpoints. Local host development uses loopback; Docker
+Compose supplies the service DNS names.
+
+| Variable                                          | Default              | Purpose                                                                                 |
+| ------------------------------------------------- | -------------------- | --------------------------------------------------------------------------------------- |
+| `PAYMENT_SERVICE_HOST` / `PAYMENT_SERVICE_PORT`   | `127.0.0.1` / `4010` | Gateway connection to payment service.                                                  |
+| `MENU_SERVICE_HOST` / `MENU_SERVICE_PORT`         | `127.0.0.1` / `4020` | Gateway and payment-service connection to menu service.                                 |
+| `ORDER_SERVICE_HOST` / `ORDER_SERVICE_PORT`       | `127.0.0.1` / `4030` | Gateway and payment-service connection to order service.                                |
+| `IDENTITY_SERVICE_HOST` / `IDENTITY_SERVICE_PORT` | `127.0.0.1` / `4050` | Gateway connection to identity service; identity binds this host when starting locally. |
+| `IDENTITY_SERVICE_TIMEOUT_MS`                     | `10000`              | Gateway timeout for identity-service requests.                                          |
+
+### Stripe and checkout
+
+| Variable                | Required / default | Purpose                                                                                    |
+| ----------------------- | ------------------ | ------------------------------------------------------------------------------------------ |
+| `STRIPE_SECRET_KEY`     | **Required**       | Server-side Stripe API key. Use a test key locally and a live key only in production.      |
+| `STRIPE_WEBHOOK_SECRET` | Optional           | Signing secret used to verify Stripe webhook requests. Configure in deployed environments. |
+
+Checkout totals are generated server-side from menu prices and the published
+restaurant charge policy. Edit
+[`prisma/checkout-policy.json`](prisma/checkout-policy.json), then publish with
+`npm run checkout:seed`. Delivery fees are configured in minor currency units
+(for example, `500` means £5.00 for GBP); an empty postcode-prefix list allows
+all postcodes in the configured countries. The current Stuart integration
+creates a delivery after payment and does not provide a pre-payment price quote.
+
+### Authentication, email, and profile photos
+
+| Variable                         | Required / default                 | Purpose                                                                                                     |
+| -------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `GOOGLE_CLIENT_IDS`              | Optional; empty                    | Comma-separated Google OAuth audience/client IDs accepted for Google sign-in.                               |
+| `AUTH_SESSION_TTL_SECONDS`       | Optional; `604800`                 | Login session lifetime; default is seven days.                                                              |
+| `EMAIL_VERIFICATION_TTL_SECONDS` | Optional; `14400`                  | Verification-code lifetime; supported values are `7200` or `14400`.                                         |
+| `EMAIL_VERIFICATION_SECRET`      | Optional; empty                    | Secret for signing/verifying email activation codes; configure a strong secret for real email verification. |
+| `SMTP_HOST`                      | Optional; empty                    | SMTP server hostname.                                                                                       |
+| `SMTP_PORT`                      | Optional; `587`                    | SMTP server port.                                                                                           |
+| `SMTP_SECURE`                    | Optional; `false`                  | Whether SMTP uses TLS immediately.                                                                          |
+| `SMTP_USER` / `SMTP_PASSWORD`    | Optional; empty                    | SMTP credentials.                                                                                           |
+| `SMTP_FROM`                      | Optional; empty                    | Sender email address.                                                                                       |
+| `PROFILE_PHOTO_STORAGE_DIR`      | Optional; `uploads/profile-photos` | Shared local/container storage directory for uploaded profile photos.                                       |
+| `PGADMIN_DEFAULT_EMAIL`          | Optional; `admin@foodmenu.local`   | Reserved for optional pgAdmin setups; pgAdmin is not in the default Compose file.                           |
+| `PGADMIN_DEFAULT_PASSWORD`       | Optional; `admin`                  | Reserved for optional pgAdmin setups; replace if using pgAdmin.                                             |
+
+Email/password registration requires email activation when verification is
+configured. For local testing, use a test SMTP service such as Mailtrap. Google
+sign-in works only after `GOOGLE_CLIENT_IDS` is configured; no Google client
+secret belongs in the mobile app.
+
+### Stuart and route tracking
+
+| Variable                                               | Required / default               | Purpose                                                                                                                                                  |
+| ------------------------------------------------------ | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STUART_API_BASE_URL`                                  | Optional; sandbox URL            | Stuart API base URL; use `https://api.stuart.com` for production.                                                                                        |
+| `STUART_CLIENT_ID` / `STUART_CLIENT_SECRET`            | Optional; empty                  | Stuart API credentials.                                                                                                                                  |
+| `STUART_ACCOUNT_ID`                                    | Optional; empty                  | Stuart account identifier.                                                                                                                               |
+| `STUART_WEBHOOK_SECRET`                                | Optional; empty                  | Shared secret for validating Stuart webhook requests. Set it before registering/using the Stuart webhook; requests are rejected if it is not configured. |
+| `STUART_PICKUP_ADDRESS`                                | Optional; empty                  | Restaurant pickup address supplied to Stuart.                                                                                                            |
+| `STUART_PICKUP_LATITUDE` / `STUART_PICKUP_LONGITUDE`   | Optional                         | Restaurant pickup coordinates.                                                                                                                           |
+| `STUART_PICKUP_PHONE`                                  | Optional; empty                  | Restaurant contact phone in international format.                                                                                                        |
+| `STUART_PICKUP_COMPANY`                                | Optional; `FoodMenu`             | Pickup contact company.                                                                                                                                  |
+| `STUART_PICKUP_FIRST_NAME` / `STUART_PICKUP_LAST_NAME` | Optional; `FoodMenu` / `Kitchen` | Pickup contact name.                                                                                                                                     |
+| `STUART_PICKUP_EMAIL`                                  | Optional; empty                  | Pickup contact email.                                                                                                                                    |
+| `STUART_PICKUP_COMMENT`                                | Optional; empty                  | Instructions attached to the pickup job.                                                                                                                 |
+| `STUART_PICKUP_DELAY_MINUTES`                          | Optional; `15`                   | Scheduled delay before the pickup time.                                                                                                                  |
+| `STUART_PACKAGE_TYPE`                                  | Optional; `medium`               | Stuart package type.                                                                                                                                     |
+| `STUART_FALLBACK_CUSTOMER_PHONE`                       | Optional; empty                  | Fallback customer phone when the order has no phone.                                                                                                     |
+| `GOOGLE_ROUTES_API_KEY`                                | Optional; empty                  | Server-side Google Routes API key for road route polylines.                                                                                              |
+
+Without Stuart credentials, payment/order creation can still be tested, but
+provider delivery dispatch will not be available. Without
+`GOOGLE_ROUTES_API_KEY`, tracking still returns order locations and an empty
+route coordinate list.
+
+### AI Food Concierge
+
+| Variable                       | Required / default           | Purpose                                                        |
+| ------------------------------ | ---------------------------- | -------------------------------------------------------------- |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Optional; empty              | Server-only Gemini API key. Required to generate AI responses. |
+| `AI_CONCIERGE_MODEL`           | Optional; `gemini-3.8-flash` | Gemini model identifier.                                       |
+| `AI_PROVIDER_TIMEOUT_MS`       | Optional; `45000`            | AI provider request timeout.                                   |
+| `AI_GUEST_TTL_SECONDS`         | Optional; `86400`            | Guest conversation lifetime.                                   |
+| `AI_RETENTION_DAYS`            | Optional; `30`               | Concierge data retention duration.                             |
+| `AI_ACCOUNT_RATE_LIMIT`        | Optional; `20`               | Authenticated turns per minute.                                |
+| `AI_GUEST_RATE_LIMIT`          | Optional; `5`                | Guest turns per minute.                                        |
+| `AI_GUEST_CREATE_RATE_LIMIT`   | Optional; `3`                | Guest conversation creation limit.                             |
+
+The Concierge also needs its public configuration seeded and the
+`capabilities.commerce` setting enabled for conversational checkout.
+
+## Database, migrations, and seed data
+
+Useful Prisma commands:
+
+```bash
+npm run prisma:generate  # Generate Prisma Client
+npm run prisma:migrate   # Create/apply development migrations
+npm run prisma:deploy    # Apply checked-in migrations
+npm run prisma:seed      # Seed menu/catalog and related development records
+npm run prisma:studio    # Open Prisma Studio
+npm run db:setup         # Deploy migrations, then seed
 ```
 
-Future admin write endpoints should live behind auth and role checks. This phase
-intentionally implements public read APIs and seed data only.
+Additional configuration and catalog commands:
 
-## Future gRPC Upgrade
+```bash
+npm run checkout:seed    # Publish prisma/checkout-policy.json
+npm run ai:seed           # Publish prisma/ai-concierge-config.json
+npm run prisma:link-promotions
+```
 
-`libs/proto` is reserved for future proto contracts. When the service boundaries
-are stable, TCP patterns can be replaced with gRPC contracts without changing the
-mobile app-facing HTTP API.
+The menu seed is intended for development and rebuilds catalog tables. Do not
+run it against production data without reviewing its effects. Migrations do not
+automatically publish restaurant checkout policy or AI Concierge config.
 
-### Deal and hot combo food navigation
+## HTTP API reference
 
-`GET /api/v1/menu/deals` and `GET /api/v1/menu/hot-combos` include
-`foodItemId` and a nested `foodItem` using the same shape as the food details
-endpoint. Mobile can open the description screen with `foodItem.id`, or fetch
-`GET /api/v1/menu/foods/:foodItemId`. Unlinked promotions return `foodItem: null`.
+All routes below are relative to `/api/v1`. The gateway serves Swagger UI at
+`/api/docs` and its OpenAPI document at `/api/docs-json`; the live OpenAPI
+schema is the source of truth for request/response field details.
 
-Any food referenced by a Deal or HotCombo is excluded from `GET /menu/foods`
-(including category and search results) and bootstrap `foodItems`. This rule
-also applies to inactive or expired promotions; direct food lookup stays available
-for active foods. Use dedicated FoodItem records for promotional products if
-the regular version should remain in the main catalog.
+### Health and menu catalog
 
-The bootstrap property is now `hotCombos` (previously `hotBurgerCombos`).
-The Prisma model and database table are now `HotCombo`. Apply the checked-in
-migration with `npm run prisma:deploy`, regenerate the Prisma client, and restart
-the services together with the mobile field update.
+The health check and menu reads are public:
 
-Catalog seeds accept an optional `foodItemId` on deals and hot combos, pointing
-to an entry in `foods`. Combo seeds include their own food entries at the combo
-price. Each deal also has a dedicated copy of a category-appropriate food, using that
-food’s existing base price. Basket-wide offer thresholds and rewards remain
-promotion metadata; linking an item does not apply checkout discounts.
-The migration preserves current links. Run `npm run prisma:link-promotions`
-after deploying migrations to create and link the dedicated promotion foods
-without resetting the catalog. This command is safe to rerun. The seed command rebuilds the menu catalog, so use it only
-when that reset is intended.
+| Method | Route                               | Description                                    |
+| ------ | ----------------------------------- | ---------------------------------------------- |
+| `GET`  | `/health`                           | Gateway health status.                         |
+| `GET`  | `/menu/bootstrap`                   | Initial catalog payload.                       |
+| `GET`  | `/menu/categories`                  | Menu categories.                               |
+| `GET`  | `/menu/foods`                       | Search/filter and paginate foods.              |
+| `GET`  | `/menu/foods/:foodId`               | Food details and customization options.        |
+| `GET`  | `/menu/deals`                       | Deals, including linked food where configured. |
+| `GET`  | `/menu/hero-slides`                 | Home-screen hero slides.                       |
+| `GET`  | `/menu/hot-combos`                  | Hot combos and linked food.                    |
+| `GET`  | `/menu/drink-add-ons`               | Drink add-ons.                                 |
+| `GET`  | `/menu/modifier-groups`             | Modifier groups.                               |
+| `GET`  | `/menu/modifier-label-translations` | Localized modifier labels.                     |
 
-Hot combo food seeds include delivery/pickup fulfillment options and the existing
-burger modifier groups. `npm run prisma:link-promotions` also updates fulfillment
-options on existing combo foods and adds missing modifier/default group links.
-It preserves their prices, descriptions, and any additional modifier links.
+### Identity, profile, and addresses
+
+Authentication endpoints include:
+
+| Method   | Route                       | Description                                      |
+| -------- | --------------------------- | ------------------------------------------------ |
+| `POST`   | `/auth/signup`              | Create an email/password account.                |
+| `POST`   | `/auth/verify-email`        | Activate an account using its verification code. |
+| `POST`   | `/auth/resend-verification` | Resend an activation code.                       |
+| `POST`   | `/auth/signin`              | Sign in with email/password.                     |
+| `POST`   | `/auth/google`              | Sign in/up using a Google ID token.              |
+| `POST`   | `/auth/google/link`         | Link Google sign-in to the current account.      |
+| `GET`    | `/auth/me`                  | Read the current profile.                        |
+| `PATCH`  | `/auth/me`                  | Update profile fields.                           |
+| `POST`   | `/auth/logout`              | Revoke the current session.                      |
+| `POST`   | `/auth/change-password`     | Change password and revoke sessions.             |
+| `POST`   | `/auth/me/photo`            | Upload a profile photo (`multipart/form-data`).  |
+| `GET`    | `/me/addresses`             | List saved addresses.                            |
+| `PUT`    | `/me/addresses/:id`         | Create or replace an address.                    |
+| `PUT`    | `/me/addresses/default`     | Select or clear the default address.             |
+| `DELETE` | `/me/addresses/:id`         | Delete a saved address.                          |
+
+Use the returned FoodMenu bearer token as `Authorization: Bearer <token>` on
+protected requests. Account ownership is derived from the token; do not rely on
+client-supplied customer IDs for authorization.
+
+### Payments and checkout
+
+All `/payments/stripe/**` endpoints require authentication:
+
+| Method   | Route                                               | Description                                                           |
+| -------- | --------------------------------------------------- | --------------------------------------------------------------------- |
+| `POST`   | `/payments/stripe/quotes`                           | Create a server-priced quote from menu line IDs and checkout details. |
+| `POST`   | `/payments/stripe/payment-intent`                   | Start payment using `{ "quoteId": "..." }`.                           |
+| `POST`   | `/payments/stripe/setup-intent`                     | Start saving a card with Stripe.                                      |
+| `GET`    | `/payments/stripe/payment-methods`                  | List saved payment methods.                                           |
+| `POST`   | `/payments/stripe/payment-methods`                  | Save Stripe payment method metadata.                                  |
+| `PATCH`  | `/payments/stripe/payment-methods/:paymentMethodId` | Update saved payment method metadata.                                 |
+| `DELETE` | `/payments/stripe/payment-methods/:paymentMethodId` | Remove a saved payment method.                                        |
+| `POST`   | `/payments/stripe/confirm`                          | Confirm/reconcile a payment.                                          |
+| `GET`    | `/payments/stripe/status/:paymentIntentId`          | Get payment status.                                                   |
+| `POST`   | `/payments/stripe/refund`                           | Request a refund.                                                     |
+
+The client must not submit trusted prices, totals, ownership, or arbitrary
+payment metadata. Use the quote returned by the server to begin Stripe's
+PaymentSheet/card UI.
+
+### Orders and delivery
+
+Order routes require authentication:
+
+| Method  | Route                                       | Description                                                     |
+| ------- | ------------------------------------------- | --------------------------------------------------------------- |
+| `GET`   | `/orders`                                   | List the signed-in customer's orders; supports status grouping. |
+| `GET`   | `/orders/fulfilment/providers`              | List active fulfilment providers.                               |
+| `GET`   | `/orders/:orderId`                          | Read order details by ID or order number.                       |
+| `GET`   | `/orders/:orderId/tracking`                 | Get tracking and route data.                                    |
+| `POST`  | `/orders/:orderId/fulfilment`               | Create a fulfilment record.                                     |
+| `PATCH` | `/orders/:orderId/fulfilment/:fulfilmentId` | Update fulfilment/tracking information.                         |
+
+Provider callbacks:
+
+| Method | Route              | Description                                                                                         |
+| ------ | ------------------ | --------------------------------------------------------------------------------------------------- |
+| `POST` | `/webhooks/stripe` | Stripe webhook; signature validation uses `STRIPE_WEBHOOK_SECRET`.                                  |
+| `POST` | `/webhooks/stuart` | Stuart webhook; requires `STUART_WEBHOOK_SECRET` and the matching `X-Stuart-Webhook-Secret` header. |
+
+### AI Food Concierge
+
+AI endpoints live under `/ai` and use bearer authentication for account-scoped
+resources; guest conversations use the guest token returned when the
+conversation is created. The main routes are:
+
+| Method                   | Route                                  | Description                               |
+| ------------------------ | -------------------------------------- | ----------------------------------------- |
+| `GET`                    | `/ai/config`                           | Read public Concierge configuration.      |
+| `GET`                    | `/ai/preference-profiles`              | List preference profiles (authenticated). |
+| `POST`                   | `/ai/preference-profiles/import`       | Import guest preferences after sign-in.   |
+| `PUT`                    | `/ai/preference-profiles/default`      | Select or clear the default profile.      |
+| `GET` / `PUT` / `DELETE` | `/ai/preference-profiles/:id`          | Read, update, or delete a profile.        |
+| `GET` / `PUT`            | `/ai/account-preferences`              | Read/update account-wide restrictions.    |
+| `POST`                   | `/ai/conversations`                    | Create a conversation.                    |
+| `GET`                    | `/ai/conversations`                    | List conversations.                       |
+| `GET`                    | `/ai/conversations/:id`                | Read conversation details.                |
+| `GET`                    | `/ai/conversations/:id/messages`       | Read paginated message history.           |
+| `PUT`                    | `/ai/conversations/:id/context`        | Change conversation preference context.   |
+| `POST`                   | `/ai/chat`                             | Send a chat turn (streaming response).    |
+| `GET`                    | `/ai/conversations/:id/commerce`       | Read commerce state and checkout history. |
+| `POST`                   | `/ai/conversations/:id/actions`        | Apply an explicit cart/checkout action.   |
+| `POST`                   | `/ai/conversations/:id/payment`        | Start payment for a conversation quote.   |
+| `POST`                   | `/ai/conversations/:id/payment/cancel` | Cancel/reconcile conversation payment.    |
+| `POST`                   | `/ai/conversations/:id/claim`          | Claim a guest conversation after sign-in. |
+
+See the [AI Concierge API](AI_CONCIERGE_API.md) for complete payloads, headers,
+streaming behavior, rate limits, privacy, and error codes, and the
+[conversation commerce guide](docs/conversation-commerce.md) for the complete
+cart-to-payment lifecycle.
+
+## Authentication and request conventions
+
+- The API base path is `/api/v1`.
+- Public routes include menu catalog reads, health, Concierge configuration,
+  and provider webhooks. Payment, order, account/profile, and saved-address
+  routes are authenticated.
+- Authenticated app requests use `Authorization: Bearer <FoodMenu token>`.
+- Use `Content-Type: application/json` for JSON bodies; photo upload uses
+  multipart form data.
+- Most HTTP responses use a JSON envelope with `success`, `status`,
+  `statusCode`, `message`, `data` or `error`, `path`, and `timestamp`. Some
+  streaming and raw configuration responses have route-specific contracts.
+- The mobile client should unwrap `response.data.data` for enveloped successful
+  API responses. See the endpoint-specific docs before implementing streaming
+  or upload clients.
+- Checkout and conversation state use server revisions/idempotency IDs where
+  documented. Retry the same operation ID after an uncertain network failure;
+  fetch current state before issuing a new mutation.
+- Use Swagger's **Authorize** control to test protected endpoints.
+
+## Stripe checkout flow
+
+The standard checkout sequence is:
+
+1. Authenticate and collect the cart's stable menu/option IDs and quantities.
+2. `POST /api/v1/payments/stripe/quotes` with a client-generated UUID
+   `requestId`, `items`, and `checkout` (`pickup` or `delivery`).
+3. Display the returned server total to the customer.
+4. `POST /api/v1/payments/stripe/payment-intent` with the returned `quoteId`.
+5. Present the returned Stripe UI credentials using the Stripe mobile SDK.
+6. Reconcile payment/order status with the backend; do not treat a dismissed
+   PaymentSheet as proof of payment or cancellation.
+
+Delivery coverage and fee are controlled by the published checkout policy.
+Current Stuart dispatch occurs after successful payment, so the checkout fee is
+the configured policy amount, not a live courier quote. The normal checkout API
+and AI conversation checkout share the same quote service; conversation-linked
+quotes must use the conversation payment endpoint.
+
+Use Stripe test keys and the standard test card `4242 4242 4242 4242`, any
+future expiry, any CVC, and any postcode. Never log or persist Stripe client
+secrets in app storage or conversation history.
+
+## AI Food Concierge
+
+To enable the feature:
+
+1. Apply database migrations and generate Prisma Client.
+2. Set `GOOGLE_GENERATIVE_AI_API_KEY` on the server.
+3. Review/publish AI configuration with `npm run ai:seed`.
+4. Ensure the published config enables the required capabilities.
+5. Follow the [AI Concierge API](AI_CONCIERGE_API.md) for chat transport and
+   account/guest integration.
+6. For conversational ordering, follow the
+   [conversation commerce guide](docs/conversation-commerce.md).
+
+Do not expose Gemini credentials in the mobile application. AI suggestions do
+not authorize purchases: the user must explicitly submit cart actions, review
+the server quote, and confirm payment through Stripe.
+
+## Documentation index
+
+| Guide                                                                | Covers                                                                                                      |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| [AI Concierge API](AI_CONCIERGE_API.md)                              | Configuration, profiles, restrictions, guest import, conversations, streaming, menu tools, privacy, errors. |
+| [Conversation commerce](docs/conversation-commerce.md)               | Commerce deployment, cart actions, quote/payment lifecycle, retries, history and recovery.                  |
+| [Mobile authentication](docs/mobile-authentication.md)               | Signup/sign-in screens, Google OAuth setup, bearer tokens, protected checkout integration.                  |
+| [Identity service](docs/identity-service.md)                         | Identity-service architecture, local startup, data ownership, and rollout.                                  |
+| [Customer addresses](docs/customer-addresses.md)                     | Saved address APIs, defaults, deployment, and mobile offline queue integration.                             |
+| [Email verification](docs/email-verification.md)                     | SMTP setup, account activation, resend flow, and rollout.                                                   |
+| [Profile photos](docs/profile-photos.md)                             | Upload/read behavior, storage, serving URLs, and deployment.                                                |
+| [Password management](docs/password-management.md)                   | Change-password request, validation, and session revocation.                                                |
+| [Dynamic category preferences](docs/dynamic-category-preferences.md) | Menu-derived preference options and client contract.                                                        |
+| [HTTP request logging](docs/request-logging.md)                      | Structured logs, redaction, request IDs, and opt-in detail logging.                                         |
+
+## Commands and tests
+
+```bash
+npm run start:dev                 # Start all services with watch mode
+npm run start:dev:gateway         # Start one service
+npm run start:dev:identity
+npm run start:dev:menu
+npm run start:dev:order
+npm run start:dev:payment
+npm run build                     # Build all services
+npm test                          # Unit tests
+npm run test:e2e                  # End-to-end tests
+npm run lint                      # ESLint
+npm run prisma:studio             # Prisma Studio
+npm run docker:up                 # Build/start Compose stack
+npm run docker:down               # Stop Compose stack
+```
+
+Other feature-specific scripts include `npm run test:addresses`,
+`npm run test:email-verification`, `npm run test:profile-photos`, and
+`npm run test:ai`.
+
+## Troubleshooting
+
+- **A service cannot connect to another service:** Check the TCP host/port
+  variables. Use `127.0.0.1` when running services directly on the host; use
+  Compose service names between containers.
+- **Database connection or missing-table errors:** Check `DATABASE_URL`, start
+  PostgreSQL, then run `npm run prisma:generate` and `npm run db:setup`.
+- **Stripe service fails during startup:** Configure a syntactically valid
+  server-side `STRIPE_SECRET_KEY`; never use a publishable key here.
+- **Google login is unavailable:** Set the correct web OAuth client ID(s) in
+  `GOOGLE_CLIENT_IDS` and ensure the mobile app sends a valid ID token.
+- **Email activation is not delivered:** Configure SMTP variables and
+  `EMAIL_VERIFICATION_SECRET`; use a test SMTP inbox locally.
+- **Checkout quote is rejected:** Check that the selected menu IDs/options
+  remain valid and that the checkout policy is seeded and allows the chosen
+  fulfilment country/postcode.
+- **AI chat is unavailable:** Check Gemini credentials, published Concierge
+  configuration, rate limits, and payment/menu service connectivity for
+  commerce actions.
+- **Delivery tracking has no route polyline:** Set a valid
+  `GOOGLE_ROUTES_API_KEY`; basic order tracking can still be returned without it.
+
+## Development guidelines
+
+- Keep provider SDK and secret-bearing operations inside the owning service.
+- Expose app-facing HTTP endpoints through the API Gateway.
+- Add shared HTTP/RPC contracts to `libs/dto` and message patterns to
+  `libs/common`.
+- Create and check in Prisma migrations for schema changes; regenerate Prisma
+  Client after schema updates.
+- Keep secrets out of source, logs, API responses, and mobile builds.
+- Run focused tests and `npm run build` after behavior or contract changes.
