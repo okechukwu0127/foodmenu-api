@@ -1,3 +1,4 @@
+import { ConfigService } from "@nestjs/config";
 import { Injectable } from "@nestjs/common";
 import { RpcException } from "@nestjs/microservices";
 import { Prisma } from "@prisma/client";
@@ -90,7 +91,10 @@ const foodSelect = {
 
 @Injectable()
 export class MenuCatalogService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
 
   async getBootstrap() {
     const [
@@ -146,7 +150,8 @@ export class MenuCatalogService {
 
     return categories.map((category) => ({
       ...category,
-      image: category.imageUrl,
+      imageUrl: this.publicAssetUrl(category.imageUrl),
+      image: this.publicAssetUrl(category.imageUrl),
       name: category.name ?? category.displayName,
     }));
   }
@@ -178,7 +183,9 @@ export class MenuCatalogService {
       where,
     });
     const hasNextPage = foodItems.length > take;
-    const items = foodItems.slice(0, take).map(this.mapFoodItem);
+    const items = foodItems
+      .slice(0, take)
+      .map((foodItem) => this.mapFoodItem(foodItem));
 
     return {
       items,
@@ -238,7 +245,8 @@ export class MenuCatalogService {
     return deals.map((deal) => ({
       ...deal,
       foodItem: deal.foodItem ? this.mapFoodItem(deal.foodItem) : null,
-      image: deal.imageUrl,
+      imageUrl: this.publicAssetUrl(deal.imageUrl),
+      image: this.publicAssetUrl(deal.imageUrl),
       offerDesc: deal.offerDesc ?? deal.description,
       offerDelivery: deal.offerDelivery ?? deal.subtitle,
       offerType: deal.offerType ?? deal.title,
@@ -269,7 +277,8 @@ export class MenuCatalogService {
     return slides.map((slide) => ({
       ...slide,
       discountPercent: slide.discountLabel ?? slide.discountPercent,
-      image: slide.imageUrl,
+      imageUrl: this.publicAssetUrl(slide.imageUrl),
+      image: this.publicAssetUrl(slide.imageUrl),
       subtitle: slide.subtitleData ?? slide.subtitle,
       title: slide.titleData ?? slide.title,
     }));
@@ -302,7 +311,8 @@ export class MenuCatalogService {
       foodItem: combo.foodItem ? this.mapFoodItem(combo.foodItem) : null,
       categoryLabel: combo.categoryLabelData ?? combo.categoryLabel,
       description: combo.descriptionData ?? combo.subtitle,
-      image: combo.imageUrl,
+      imageUrl: this.publicAssetUrl(combo.imageUrl),
+      image: this.publicAssetUrl(combo.imageUrl),
       name: combo.nameData ?? combo.title,
       price: combo.price === null ? null : combo.price / 100,
     }));
@@ -329,7 +339,8 @@ export class MenuCatalogService {
     return drinks.map((drink) => ({
       ...drink,
       description: drink.descriptionData ?? drink.description,
-      image: drink.imageUrl,
+      imageUrl: this.publicAssetUrl(drink.imageUrl),
+      image: this.publicAssetUrl(drink.imageUrl),
       name: drink.nameData ?? drink.name,
       price: drink.price / 100,
     }));
@@ -380,7 +391,8 @@ export class MenuCatalogService {
       options: group.options.map((option) => ({
         ...option,
         description: option.descriptionData ?? option.description,
-        image: option.imageUrl,
+        imageUrl: this.publicAssetUrl(option.imageUrl),
+        image: this.publicAssetUrl(option.imageUrl),
         name: option.nameData ?? option.name,
         priceOffset: option.priceOffset / 100,
       })),
@@ -419,15 +431,19 @@ export class MenuCatalogService {
       where: catalogFoodWhere,
     });
 
-    return foodItems.map(this.mapFoodItem);
+    return foodItems.map((foodItem) => this.mapFoodItem(foodItem));
   }
 
   private mapFoodItem(
     foodItem: Prisma.FoodItemGetPayload<{ select: typeof foodSelect }>,
   ) {
+    const images = foodItem.images.map((image) => ({
+      ...image,
+      url: this.publicAssetUrl(image.url),
+    }));
     return {
       dietaryInfo: foodItem.dietaryInfo,
-      appetizerOptions: foodItem.appetizerOptions ?? [],
+      appetizerOptions: this.mapAssetUrls(foodItem.appetizerOptions ?? []),
       calories: foodItem.calories,
       categoryId: foodItem.categoryId,
       currency: foodItem.currency,
@@ -435,8 +451,8 @@ export class MenuCatalogService {
       discountPercent: foodItem.discountPercent,
       fulfillmentOptions: foodItem.fulfillmentOptions ?? [],
       id: foodItem.id,
-      image: foodItem.images.map((image) => image.url),
-      images: foodItem.images,
+      image: images.map((image) => image.url),
+      images,
       isFoodAvailable: foodItem.isFoodAvailable,
       isPopular: foodItem.isPopular,
       isRecommended: foodItem.isRecommended,
@@ -450,7 +466,8 @@ export class MenuCatalogService {
         options: modifierGroup.options.map((option) => ({
           ...option,
           description: option.descriptionData ?? option.description,
-          image: option.imageUrl,
+          imageUrl: this.publicAssetUrl(option.imageUrl),
+          image: this.publicAssetUrl(option.imageUrl),
           name: option.nameData ?? option.name,
           priceOffset: option.priceOffset / 100,
         })),
@@ -460,11 +477,42 @@ export class MenuCatalogService {
       prepTimeMinutes: foodItem.prepTimeMinutes,
       price: foodItem.price / 100,
       rating: foodItem.rating,
-      sideOptions: foodItem.sideOptions ?? [],
+      sideOptions: this.mapAssetUrls(foodItem.sideOptions ?? []),
       sizeOptions: foodItem.sizeOptions ?? [],
       slug: foodItem.slug,
       sortOrder: foodItem.sortOrder,
       tags: foodItem.tags,
     };
+  }
+
+  private publicAssetUrl(value: string | null | undefined) {
+    if (!value) return value;
+    const base = this.config
+      .get<string>("PUBLIC_ASSET_BASE_URL", "http://localhost:4000")
+      .replace(/\/+$/, "");
+    if (value.startsWith("/assets/")) return `${base}${value}`;
+    if (!/^https?:\/\//i.test(value)) return value;
+    try {
+      const url = new URL(value);
+      if (url.pathname.startsWith("/assets/"))
+        return `${base}${url.pathname}${url.search}${url.hash}`;
+    } catch {
+      return value;
+    }
+    return value;
+  }
+
+  private mapAssetUrls<T>(value: T): T {
+    if (typeof value === "string") return this.publicAssetUrl(value) as T;
+    if (Array.isArray(value))
+      return value.map((item) => this.mapAssetUrls(item)) as T;
+    if (value && typeof value === "object")
+      return Object.fromEntries(
+        Object.entries(value).map(([key, item]) => [
+          key,
+          this.mapAssetUrls(item),
+        ]),
+      ) as T;
+    return value;
   }
 }
