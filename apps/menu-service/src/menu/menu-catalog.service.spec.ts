@@ -1,4 +1,5 @@
 import { Test } from "@nestjs/testing";
+import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "@app/database";
 import { MenuCatalogService } from "./menu-catalog.service";
 
@@ -14,6 +15,9 @@ describe("MenuCatalogService", () => {
     modifierGroup: { findMany: jest.fn() },
     modifierLabelTranslation: { findMany: jest.fn() },
   };
+  const config = {
+    get: jest.fn().mockReturnValue("https://assets.example.com"),
+  };
 
   let service: MenuCatalogService;
 
@@ -25,6 +29,10 @@ describe("MenuCatalogService", () => {
         {
           provide: PrismaService,
           useValue: prisma,
+        },
+        {
+          provide: ConfigService,
+          useValue: config,
         },
       ],
     }).compile();
@@ -59,8 +67,32 @@ describe("MenuCatalogService", () => {
     expect(result[0]).toMatchObject({
       id: "category",
       icon: "icon",
-      imageUrl: "/assets/category.webp",
+      imageUrl: "https://assets.example.com/assets/category.webp",
+      image: "https://assets.example.com/assets/category.webp",
     });
+  });
+
+  it("uses the configured public asset base for existing absolute hero-slide URLs", async () => {
+    prisma.heroSlide.findMany.mockResolvedValue([
+      {
+        id: "hero",
+        imageUrl: "http://localhost:4000/assets/hero1.webp",
+        discountPercent: "30%",
+        discountLabel: null,
+        subtitle: "Offer",
+        subtitleData: null,
+        title: "Title",
+        titleData: null,
+      },
+    ]);
+
+    await expect(service.getHeroSlides()).resolves.toMatchObject([
+      {
+        id: "hero",
+        imageUrl: "https://assets.example.com/assets/hero1.webp",
+        image: "https://assets.example.com/assets/hero1.webp",
+      },
+    ]);
   });
 
   it("returns a complete bootstrap payload", async () => {

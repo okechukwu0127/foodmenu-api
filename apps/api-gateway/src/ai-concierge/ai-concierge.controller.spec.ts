@@ -25,6 +25,7 @@ describe("AiConciergeController configuration", () => {
   const response = () => ({
     set: jest.fn().mockReturnThis(),
     status: jest.fn().mockReturnThis(),
+    type: jest.fn().mockReturnThis(),
     end: jest.fn(),
     json: jest.fn(),
   });
@@ -40,12 +41,14 @@ describe("AiConciergeController configuration", () => {
     );
 
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({
-      success: true,
-      data: { version: "v1" },
+    expect(res.type).toHaveBeenCalledWith("application/json");
+    expect(res.end).toHaveBeenCalledWith(
+      JSON.stringify({ success: true, data: { version: "v1" } }),
+    );
+    expect(res.set).toHaveBeenCalledWith({
+      "Cache-Control": "no-store",
+      ETag: '"v1-en"',
     });
-    expect(res.end).not.toHaveBeenCalled();
-    expect(res.set).toHaveBeenCalledWith({ "Cache-Control": "no-store" });
   });
 
   it("returns a full config for a matching conditional request", async () => {
@@ -57,10 +60,9 @@ describe("AiConciergeController configuration", () => {
     );
 
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({
-      success: true,
-      data: { version: "v1" },
-    });
-    expect(res.end).not.toHaveBeenCalled();
+    expect(res.type).toHaveBeenCalledWith("application/json");
+    expect(res.end).toHaveBeenCalledWith(
+      JSON.stringify({ success: true, data: { version: "v1" } }),
+    );
   });
 });

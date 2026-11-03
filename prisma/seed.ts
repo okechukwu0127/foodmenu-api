@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Prisma, PrismaClient } from "@prisma/client";
@@ -125,10 +126,7 @@ const parseDiscountPercent = (value: string) => {
 
 const loadCatalog = () =>
   JSON.parse(
-    readFileSync(
-      join(__dirname, "seed-data/mobile-catalog.seed.json"),
-      "utf8",
-    ),
+    readFileSync(join(__dirname, "seed-data/mobile-catalog.seed.json"), "utf8"),
   ) as CatalogSeed;
 
 async function clearMenuCatalog() {
@@ -248,7 +246,10 @@ async function main() {
       });
     }
 
-    for (const [groupIndex, modifierGroupId] of food.modifierGroupIds.entries()) {
+    for (const [
+      groupIndex,
+      modifierGroupId,
+    ] of food.modifierGroupIds.entries()) {
       await prisma.foodItemModifierGroup.create({
         data: {
           foodItemId: food.id,

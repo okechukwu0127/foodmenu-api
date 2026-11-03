@@ -226,6 +226,7 @@ describeDb("AI Food Concierge (HTTP + Prisma, mocked Gemini/menu RPC)", () => {
     const menuDomain = {
       getFoodById: async (id: string) => ({
         ...fixture(id, declaration),
+        categoryId: "sushi",
         price: menuPrice,
         isFoodAvailable: available,
         modifierGroups: fixture(id).modifierGroups.map((g) => ({
@@ -371,7 +372,7 @@ describeDb("AI Food Concierge (HTTP + Prisma, mocked Gemini/menu RPC)", () => {
     menu.send.mockReset();
     menu.send.mockImplementation((pattern: string, payload: any) =>
       pattern === MENU_PATTERNS.GET_CATEGORIES
-        ? from(new MenuCatalogService(db).getCategories())
+        ? from(new MenuCatalogService(db, settings).getCategories())
         : pattern === MENU_PATTERNS.PRICE_CART
           ? from(pricing.price(payload))
           : of(
@@ -913,7 +914,7 @@ describeDb("AI Food Concierge (HTTP + Prisma, mocked Gemini/menu RPC)", () => {
     const conv = await create().expect(201);
     menu.send.mockImplementation((pattern: string) =>
       pattern === MENU_PATTERNS.GET_CATEGORIES
-        ? from(new MenuCatalogService(db).getCategories())
+        ? from(new MenuCatalogService(db, settings).getCategories())
         : of({ items: [], nextCursor: null }),
     );
     const result = await chat(conv.body.data.id).expect(200);
@@ -933,7 +934,7 @@ describeDb("AI Food Concierge (HTTP + Prisma, mocked Gemini/menu RPC)", () => {
     const conv = await create().expect(201);
     menu.send.mockImplementation((pattern: string) =>
       pattern === MENU_PATTERNS.GET_CATEGORIES
-        ? from(new MenuCatalogService(db).getCategories())
+        ? from(new MenuCatalogService(db, settings).getCategories())
         : of({ items: [], nextCursor: null }),
     );
     const result = await chat(conv.body.data.id).expect(200);
@@ -1458,7 +1459,10 @@ describeDb("AI Food Concierge (HTTP + Prisma, mocked Gemini/menu RPC)", () => {
       return r.send(body);
     };
     const prepare = async (
-      checkout: { fulfilment: "pickup" | "delivery"; deliveryAddress?: object } = {
+      checkout: {
+        fulfilment: "pickup" | "delivery";
+        deliveryAddress?: object;
+      } = {
         fulfilment: "pickup",
       },
     ) => {
@@ -1537,6 +1541,9 @@ describeDb("AI Food Concierge (HTTP + Prisma, mocked Gemini/menu RPC)", () => {
         deliveryAddress,
       });
       const quote = await quotes.owned(prepared.quoteId, customer);
+      expect((quote.snapshot as any).items[0].imageUrl).toBe(
+        "https://example.com/food.webp",
+      );
       expect(quote.conversationId).toBe(prepared.id);
       expect(quote.snapshot).toMatchObject({
         deliveryFee: 399,
@@ -1749,8 +1756,11 @@ describeDb("AI Food Concierge (HTTP + Prisma, mocked Gemini/menu RPC)", () => {
       expect(intents.get(pid).amount).toBe(3000);
       const order = await db.order.findUniqueOrThrow({
         where: { id: startedPayment.body.data.orderId },
+        include: { items: true },
       });
       expect(order.amount).toBe(3000);
+      expect(order.items[0].imageUrl).toBe("https://example.com/food.webp");
+      expect(order.items[0].categoryId).toBe("sushi");
       expect(order.customerId).toBe(customer);
       const pending = await state(id).expect(200);
       expect(pending.body.data.stage).toBe("PAYMENT_PENDING");

@@ -36,47 +36,47 @@ export class CheckoutQuotesService {
     @Inject("ORDER_SERVICE") private readonly orders: ClientProxy,
   ) {}
   private rpc(client: ClientProxy, pattern: string, input: unknown) {
-    return firstValueFrom(client.send(pattern, input).pipe(timeout(7000))).catch(
-      (error: unknown) => {
-        const outer =
-          typeof error === "object" && error !== null
-            ? (error as Record<string, unknown>)
-            : {};
-        const inner =
-          typeof outer.error === "object" && outer.error !== null
-            ? (outer.error as Record<string, unknown>)
-            : {};
-        const code =
-          (typeof outer.code === "string" && outer.code) ||
-          (typeof inner.code === "string" && inner.code) ||
-          null;
-        const statusCode =
-          (typeof outer.statusCode === "number" && outer.statusCode) ||
-          (typeof inner.statusCode === "number" && inner.statusCode) ||
-          null;
-        const log = JSON.stringify({
-          event: "checkout_quote_rpc_failed",
-          pattern,
-          code,
-          statusCode,
-          errorName:
-            typeof outer.name === "string"
-              ? outer.name
-              : typeof inner.name === "string"
-                ? inner.name
-                : null,
-        });
-        if (code) this.logger.warn(log);
-        else this.logger.error(log);
-        const message =
-          (typeof outer.message === "string" && outer.message) ||
-          (typeof inner.message === "string" && inner.message) ||
-          null;
-        if (code && statusCode && statusCode >= 400 && statusCode <= 599)
-          fail(code, message ?? "Checkout service request failed", statusCode);
-        throw error;
-      },
-    );
+    return firstValueFrom(
+      client.send(pattern, input).pipe(timeout(7000)),
+    ).catch((error: unknown) => {
+      const outer =
+        typeof error === "object" && error !== null
+          ? (error as Record<string, unknown>)
+          : {};
+      const inner =
+        typeof outer.error === "object" && outer.error !== null
+          ? (outer.error as Record<string, unknown>)
+          : {};
+      const code =
+        (typeof outer.code === "string" && outer.code) ||
+        (typeof inner.code === "string" && inner.code) ||
+        null;
+      const statusCode =
+        (typeof outer.statusCode === "number" && outer.statusCode) ||
+        (typeof inner.statusCode === "number" && inner.statusCode) ||
+        null;
+      const log = JSON.stringify({
+        event: "checkout_quote_rpc_failed",
+        pattern,
+        code,
+        statusCode,
+        errorName:
+          typeof outer.name === "string"
+            ? outer.name
+            : typeof inner.name === "string"
+              ? inner.name
+              : null,
+      });
+      if (code) this.logger.warn(log);
+      else this.logger.error(log);
+      const message =
+        (typeof outer.message === "string" && outer.message) ||
+        (typeof inner.message === "string" && inner.message) ||
+        null;
+      if (code && statusCode && statusCode >= 400 && statusCode <= 599)
+        fail(code, message ?? "Checkout service request failed", statusCode);
+      throw error;
+    });
   }
   private async calculate(dto: QuoteInput) {
     const priced = await this.rpc(this.menu, MENU_PATTERNS.PRICE_CART, {
@@ -95,6 +95,19 @@ export class CheckoutQuotesService {
       modifiers: i.modifiers,
       extras: i.extras,
       name: i.name,
+      categoryId:
+        typeof i.food?.categoryId === "string" ? i.food.categoryId : null,
+      description:
+        typeof i.food?.description === "string"
+          ? i.food.description
+          : typeof i.food?.description?.en === "string"
+            ? i.food.description.en
+            : null,
+      imageUrl: Array.isArray(i.food?.images)
+        ? (i.food.images.find(
+            (image: any) => typeof image?.url === "string" && image.url.trim(),
+          )?.url ?? null)
+        : null,
       currency: i.currency,
       unitAmount: i.unitAmount,
       lineAmount: i.lineAmount,
@@ -256,6 +269,9 @@ export class CheckoutQuotesService {
               items: s.items.map((i: any) => ({
                 foodItemId: i.foodId,
                 name: i.name,
+                categoryId: i.categoryId ?? undefined,
+                description: i.description ?? undefined,
+                imageUrl: i.imageUrl ?? undefined,
                 quantity: i.quantity,
                 unitAmount: i.unitAmount,
                 modifiers: i.modifiers,
