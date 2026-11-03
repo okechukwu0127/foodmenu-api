@@ -756,6 +756,7 @@ export class OrdersService {
       categoryId: item.categoryId,
       currency: item.currency,
       description: item.description,
+      details: this.itemDisplayLine(item.itemSnapshot),
       foodItemId: item.foodItemId,
       id: item.id,
       imageUrl: item.imageUrl,
@@ -800,6 +801,16 @@ export class OrdersService {
       taxAmount: order.taxAmount,
       updatedAt: order.updatedAt,
     };
+  }
+
+  private itemDisplayLine(snapshot: Prisma.JsonValue | null): string {
+    if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot))
+      return "";
+    const value = snapshot.displayLine;
+    return typeof value === "string" &&
+      !["null", "undefined"].includes(value.trim().toLowerCase())
+      ? value.trim()
+      : "";
   }
 
   private getStatusGroup(status: OrderStatus) {

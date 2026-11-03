@@ -14,7 +14,12 @@ describe("Checkout customer ownership", () => {
   };
   const prisma = {
     customer: { findUnique: jest.fn(), update: jest.fn(), upsert: jest.fn() },
-    order: { create: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn() },
+    order: {
+      create: jest.fn(),
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+    },
     orderItem: { deleteMany: jest.fn(), create: jest.fn() },
     orderFulfilment: { update: jest.fn() },
   };
@@ -54,6 +59,62 @@ describe("Checkout customer ownership", () => {
     });
     expect(prisma.customer.update).not.toHaveBeenCalled();
     expect(prisma.customer.upsert).not.toHaveBeenCalled();
+  });
+  it.each([null, undefined, "", "null", "undefined"])(
+    "returns blank item details for an absent display line (%s)",
+    async (displayLine) => {
+      prisma.order.findMany.mockResolvedValue([
+        {
+          id: "order-1",
+          status: "PAID",
+          fulfilments: [],
+          items: [
+            {
+              id: "item-1",
+              name: "Salmon Nigiri Set",
+              imageUrl: "https://example.com/salmon.webp",
+              categoryId: null,
+              quantity: 1,
+              itemSnapshot: { displayLine },
+            },
+          ],
+        },
+      ]);
+      const result = await service.getCustomerOrders({
+        customerId: customer.id,
+        limit: 20,
+      });
+      const order = (result as any).active[0];
+      expect(order.primaryItem.details).toBe("");
+      expect(order.primaryItem.imageUrl).toBe(
+        "https://example.com/salmon.webp",
+      );
+      expect(order.items[0]).toEqual(order.primaryItem);
+    },
+  );
+  it("preserves saved item display details", async () => {
+    prisma.order.findMany.mockResolvedValue([
+      {
+        id: "order-1",
+        status: "PAID",
+        fulfilments: [],
+        items: [
+          {
+            id: "item-1",
+            quantity: 1,
+            itemSnapshot: { displayLine: "Large, extra rice" },
+          },
+        ],
+      },
+    ]);
+    expect(
+      (
+        (await service.getCustomerOrders({
+          customerId: customer.id,
+          limit: 20,
+        })) as any
+      ).active[0].primaryItem.details,
+    ).toBe("Large, extra rice");
   });
 
   it("rejects missing profiles instead of silently creating demo customers", async () => {
