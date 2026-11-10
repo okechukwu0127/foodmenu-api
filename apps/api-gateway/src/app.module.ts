@@ -14,6 +14,7 @@ import { OrdersController } from "./orders/orders.controller";
 
 import { AiConciergeModule } from "./ai-concierge/ai-concierge.module";
 import { AuthModule } from "./auth/auth.module";
+import { AppConfigModule } from "./app-config/app-config.module";
 
 @Module({
   controllers: [
@@ -31,6 +32,7 @@ import { AuthModule } from "./auth/auth.module";
       validationSchema: envValidationSchema,
     }),
     AuthModule,
+    AppConfigModule,
     AiConciergeModule,
     ThrottlerModule.forRoot([
       {

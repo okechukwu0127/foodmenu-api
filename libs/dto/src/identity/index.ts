@@ -27,6 +27,7 @@ export type IdentitySession = {
 };
 
 export * from "./address.dto";
+export * from "./favorite.dto";
 
 export type EmailVerificationRequired = {
   requiresEmailVerification: true;

@@ -1,0 +1,18 @@
+{
+  "appName": "Eazy Eat",
+  "shortName": "Eazy Eat",
+  "defaultRestaurant": {
+    "id": "c34d5c31-8878-4c62-85cd-241385c769c0",
+    "restaurantName": "Eazy Eat Main Office",
+    "address": {
+      "formatted": "127 Humber Avenue, Coventry, CV1 2AB",
+      "line1": "127 Humber Avenue",
+      "line2": null,
+      "city": "Coventry",
+      "postcode": "CV1 2AB",
+      "countryCode": "GB",
+      "latitude": 52.42441177368164,
+      "longitude": -1.5433413982391357
+    }
+  }
+}

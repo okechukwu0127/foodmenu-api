@@ -1,4 +1,6 @@
 import { ConfigService } from "@nestjs/config";
+import { tool } from "ai";
+import { z } from "zod";
 import { GeminiConciergeProvider } from "./gemini.provider";
 import { MenuToolsService } from "../tools/menu-tools.service";
 describe("Gemini direct-provider adapter", () => {
@@ -64,6 +66,53 @@ describe("Gemini direct-provider adapter", () => {
     expect(() =>
       new GeminiConciergeProvider(new ConfigService()).assertConfigured(),
     ).toThrow("not configured");
+  });
+  it("keeps menu tools optional so greetings can be answered conversationally", async () => {
+    const event = {
+      candidates: [
+        {
+          content: {
+            role: "model",
+            parts: [{ text: "Hello! How can I help with dinner today?" }],
+          },
+          finishReason: "STOP",
+          index: 0,
+        },
+      ],
+      usageMetadata: {
+        promptTokenCount: 10,
+        candidatesTokenCount: 8,
+        totalTokenCount: 18,
+      },
+    };
+    const fetch = jest.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(`data: ${JSON.stringify(event)}\n\n`, {
+        headers: { "content-type": "text/event-stream" },
+      }),
+    );
+    const provider = new GeminiConciergeProvider(
+      new ConfigService({ GOOGLE_GENERATIVE_AI_API_KEY: "test-only-key" }),
+    );
+    const tools = {
+      searchMenu: tool({
+        description: "Search the current menu",
+        inputSchema: z.object({ query: z.string() }),
+        execute: async () => ({ foods: [] }),
+      }),
+    } as ReturnType<MenuToolsService["create"]>;
+
+    const result = provider.stream({
+      system: "Answer greetings directly; use tools for menu questions.",
+      messages: [{ role: "user", content: "Hi there" }],
+      tools,
+      signal: new AbortController().signal,
+      maxTokens: 100,
+      steps: 3,
+    });
+    for await (const event of result.events) void event;
+
+    const request = JSON.parse(String(fetch.mock.calls[0][1]?.body));
+    expect(request.toolConfig.functionCallingConfig.mode).toBe("AUTO");
   });
   it("logs provider failures safely instead of dumping the SDK request/error object", async () => {
     jest.replaceProperty(process, "env", {

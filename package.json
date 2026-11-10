@@ -34,7 +34,9 @@
     "test:profile-photos": "node scripts/test-profile-photos.cjs",
     "ai:seed": "node scripts/seed-ai-concierge.cjs",
     "test:ai": "node scripts/test-ai-concierge.cjs",
-    "checkout:seed": "node scripts/seed-checkout-policy.cjs"
+    "checkout:seed": "node scripts/seed-checkout-policy.cjs",
+    "app:seed": "node scripts/seed-app-config.cjs",
+    "test:app-config": "node scripts/test-app-config.cjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.138",

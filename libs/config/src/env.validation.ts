@@ -1,6 +1,7 @@
 import * as Joi from "joi";
 
 export const envValidationSchema = Joi.object({
+  TRUST_PROXY_HOPS: Joi.number().integer().min(0).max(5).default(0),
   LOG_COLOR: Joi.string().valid("auto", "always", "never").default("auto"),
   GOOGLE_GENERATIVE_AI_API_KEY: Joi.string().allow("").optional(),
   AI_CONCIERGE_MODEL: Joi.string().max(100).default("gemini-3.8-flash"),

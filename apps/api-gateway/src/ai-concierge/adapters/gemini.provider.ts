@@ -76,9 +76,7 @@ export class GeminiConciergeProvider {
         toolChoice:
           options.steps > 1 && stepNumber === options.steps - 1
             ? "none"
-            : stepNumber === 0 && Object.keys(options.tools).length
-              ? "required"
-              : "auto",
+            : "auto",
       }),
       maxRetries: 0,
     });

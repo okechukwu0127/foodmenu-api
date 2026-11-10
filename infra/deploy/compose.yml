@@ -1,0 +1,68 @@
+x-app: &app
+  image: ${RUNTIME_IMAGE:?Set RUNTIME_IMAGE}
+  env_file: .env
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+  depends_on:
+    postgres:
+      condition: service_healthy
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+  api-gateway:
+    <<: *app
+    command: ["node", "dist/apps/api-gateway/main.js"]
+    environment:
+      PAYMENT_SERVICE_HOST: payment-service
+      MENU_SERVICE_HOST: menu-service
+      ORDER_SERVICE_HOST: order-service
+      IDENTITY_SERVICE_HOST: identity-service
+      PROFILE_PHOTO_STORAGE_DIR: /app/uploads/profile-photos
+    ports: ["127.0.0.1:4000:4000"]
+    volumes: ["./uploads/profile-photos:/app/uploads/profile-photos:ro", "./assets:/app/public/assets:ro"]
+  identity-service:
+    <<: *app
+    command: ["node", "dist/apps/identity-service/main.js"]
+    environment:
+      IDENTITY_SERVICE_HOST: 0.0.0.0
+      PROFILE_PHOTO_STORAGE_DIR: /app/uploads/profile-photos
+    volumes: ["./uploads/profile-photos:/app/uploads/profile-photos"]
+  menu-service:
+    <<: *app
+    command: ["node", "dist/apps/menu-service/main.js"]
+    environment: { MENU_SERVICE_HOST: 0.0.0.0 }
+  order-service:
+    <<: *app
+    command: ["node", "dist/apps/order-service/main.js"]
+    environment: { ORDER_SERVICE_HOST: 0.0.0.0 }
+  payment-service:
+    <<: *app
+    command: ["node", "dist/apps/payment-service/main.js"]
+    environment:
+      PAYMENT_SERVICE_HOST: 0.0.0.0
+      MENU_SERVICE_HOST: menu-service
+      ORDER_SERVICE_HOST: order-service
+  tools:
+    image: ${TOOLS_IMAGE:?Set TOOLS_IMAGE}
+    env_file: .env
+    profiles: ["tools"]
+    command: ["npx", "prisma", "migrate", "deploy"]

@@ -64,6 +64,33 @@ enum FulfilmentStatus {
   FAILED
 }
 
+model Restaurant {
+  id               String            @id @default(uuid()) @db.Uuid
+  restaurantName   String
+  isActive         Boolean           @default(true)
+  addressFormatted String
+  addressLine1     String
+  addressLine2     String?
+  city             String
+  postcode         String
+  countryCode      String            @db.Char(2)
+  latitude         Float
+  longitude        Float
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  appConfiguration AppConfiguration?
+}
+
+model AppConfiguration {
+  id                  String     @id @default("default")
+  appName             String
+  shortName           String?
+  defaultRestaurantId String     @unique @db.Uuid
+  defaultRestaurant   Restaurant @relation(fields: [defaultRestaurantId], references: [id], onDelete: Restrict)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+}
+
 model PaymentTransaction {
   id              String          @id @default(cuid())
   paymentIntentId String          @unique
@@ -97,6 +124,7 @@ model Customer {
   metadata         Json?
   authAccount      AuthAccount?
   addresses        CustomerAddress[]       @relation("CustomerAddresses")
+  favorites        CustomerFavorite[]
   defaultAddressId String?                 @db.VarChar(128)
   defaultAddress   CustomerAddress?        @relation("DefaultCustomerAddress", fields: [id, defaultAddressId], references: [customerId, addressId], onDelete: NoAction, onUpdate: NoAction)
   orders           Order[]
@@ -585,6 +613,15 @@ model CustomerAddress {
   defaultFor Customer[] @relation("DefaultCustomerAddress")
 
   @@id([customerId, addressId])
+}
+
+model CustomerFavorite {
+  customerId String   @db.Text
+  foodId     String   @db.VarChar(128)
+  createdAt  DateTime @default(now())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@id([customerId, foodId])
 }
 
 model EmailVerification {
