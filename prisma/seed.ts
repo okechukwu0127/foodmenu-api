@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { seedAppConfiguration } from "./seed-data/app-config.seed";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Prisma, PrismaClient } from "@prisma/client";
@@ -145,6 +146,10 @@ async function clearMenuCatalog() {
 }
 
 async function main() {
+  await seedAppConfiguration(
+    prisma,
+    JSON.parse(readFileSync(join(__dirname, "app-config.json"), "utf8")),
+  );
   const catalog = loadCatalog();
 
   await clearMenuCatalog();

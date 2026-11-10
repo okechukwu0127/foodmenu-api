@@ -130,6 +130,7 @@ npm run prisma:deploy
 npm run prisma:seed
 
 # Publish the AI configuration and restaurant checkout policy.
+npm run app:seed
 npm run ai:seed
 npm run checkout:seed
 ```
@@ -259,17 +260,18 @@ Request IDs correlate completion and HTTP error logs. Tokens, passwords, codes, 
 
 ## Database and configuration
 
-| Command                          | Effect                                                                         |
-| -------------------------------- | ------------------------------------------------------------------------------ |
-| `npm run prisma:generate`        | Regenerate the Prisma client after schema/package changes                      |
-| `npm run prisma:deploy`          | Apply checked-in migrations without creating new ones                          |
-| `npm run prisma:migrate`         | Development workflow for creating/applying schema migrations                   |
-| `npm run prisma:seed`            | Reset/rebuild development catalogue seed data and seed fulfilment providers    |
-| `npm run db:setup`               | Run migrations and catalogue seed; intended for a fresh development database   |
-| `npm run prisma:link-promotions` | Link/update dedicated promotion foods without resetting the entire catalogue   |
-| `npm run prisma:studio`          | Open the database browser                                                      |
-| `npm run ai:seed`                | Validate and publish an immutable AI base configuration                        |
-| `npm run checkout:seed`          | Publish/update restaurant charge policy; changed settings advance its revision |
+| Command                          | Effect                                                                                                    |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `npm run prisma:generate`        | Regenerate the Prisma client after schema/package changes                                                 |
+| `npm run prisma:deploy`          | Apply checked-in migrations without creating new ones                                                     |
+| `npm run prisma:migrate`         | Development workflow for creating/applying schema migrations                                              |
+| `npm run prisma:seed`            | Reset/rebuild development catalogue seed data and seed fulfilment providers                               |
+| `npm run db:setup`               | Run migrations and catalogue seed; intended for a fresh development database                              |
+| `npm run prisma:link-promotions` | Link/update dedicated promotion foods without resetting the entire catalogue                              |
+| `npm run prisma:studio`          | Open the database browser                                                                                 |
+| `npm run app:seed`               | Publish branding and the default restaurant from `prisma/app-config.json`; independent of catalogue reset |
+| `npm run ai:seed`                | Validate and publish an immutable AI base configuration                                                   |
+| `npm run checkout:seed`          | Publish/update restaurant charge policy; changed settings advance its revision                            |
 
 Configuration sources:
 
@@ -327,6 +329,7 @@ Every path below starts with `/api/v1`.
 | Area                   | Method and path                                                                                                           | Access / behavior                                                                     |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | Health                 | `GET /health`                                                                                                             | Public; gateway liveness                                                              |
+| App branding/location  | `GET /app/config`                                                                                                         | Public app name and active default restaurant; ETag/304 caching                       |
 | Catalogue              | `GET /menu/bootstrap`, `/menu/categories`, `/menu/foods`, `/menu/foods/:foodId`                                           | Public menu data; foods support categoryId, search, isPopular, page, limit and cursor |
 | Promotions/assets      | `GET /menu/deals`, `/menu/hot-combos`, `/menu/hero-slides`, `/menu/drink-add-ons`                                         | Public                                                                                |
 | Modifiers              | `GET /menu/modifier-groups`, `/menu/modifier-label-translations`                                                          | Public                                                                                |
@@ -338,6 +341,7 @@ Every path below starts with `/api/v1`.
 | Session/password       | `POST /auth/logout`, `/auth/change-password`                                                                              | Session; password change revokes all sessions                                         |
 | Addresses              | `GET /me/addresses`, `PUT /me/addresses/:id`, `DELETE /me/addresses/:id`                                                  | Session; client-generated address IDs, scoped to customer                             |
 | Default address        | `PUT /me/addresses/default`                                                                                               | Session; `{ addressId }`, including null                                              |
+| Favorites              | `GET /me/favorites`, `PUT /me/favorites/:foodId`, `DELETE /me/favorites/:foodId`                                           | Session; customer-scoped food IDs; PUT and DELETE are idempotent                      |
 | AI configuration       | `GET /ai/config?locale=en`                                                                                                | Public localized configuration                                                        |
 | Dining profiles        | `GET /ai/preference-profiles`, `GET/PUT/DELETE /ai/preference-profiles/:id`                                               | Session; revision-aware writes                                                        |
 | Profile import/default | `POST /ai/preference-profiles/import`, `PUT /ai/preference-profiles/default`                                              | Session; documented import/default revision contracts                                 |
@@ -359,6 +363,8 @@ Every path below starts with `/api/v1`.
 | Provider callbacks     | `POST /webhooks/stripe`, `/webhooks/stuart`                                                                               | Provider verification, not a user login session                                       |
 
 Saved addresses can omit coordinates; delivery checkout currently needs a structured address with coordinates. There is no `/me/addresses/sync` endpoint: the four address endpoints replace that older mobile contract.
+
+Favorites contain food IDs only. After login, fetch the server list, add any locally saved IDs with `PUT /me/favorites/:foodId`, then refresh the server list to reconcile local storage. Use `DELETE /me/favorites/:foodId` to remove one; no customer ID or request body is required. `GET /me/favorites` returns `{ favorites: [{ foodId }] }`.
 
 ### Authentication smoke test
 
@@ -517,6 +523,7 @@ npm run test:addresses
 npm run test:email-verification
 npm run test:profile-photos
 npm run test:ai
+npm run test:app-config
 npx tsc --noEmit --incremental false
 ESLINT_USE_FLAT_CONFIG=false npm run lint
 npm run build
@@ -539,6 +546,8 @@ npm run start:gateway
 ```
 
 ## Deployment and troubleshooting
+
+The [AWS staging deployment guide](docs/aws-staging-deployment.md) includes the Terraform plan, **~$37–40/month idle estimate**, SSO setup, generated HTTPS URL, private runtime secrets, existing local database/photo migration, backups and terminal deployment commands. Provisioning is a separate reviewed step; the plan does not automatically create AWS resources.
 
 Deploy migrations before updated services, generate/build with the locked dependencies, publish reviewed AI/checkout configuration, and start all five processes. Use HTTPS for the public gateway and assets, persistent photo storage, appropriate CORS origins, private TCP networking and configured provider webhooks. In production, prefer compact JSON logs and `LOG_COLOR=never`. Keep database backups and restaurant configuration outside disposable development resets.
 
@@ -569,6 +578,7 @@ Apple/Facebook social login, forgot-password/email-based password recovery, voic
 | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | [OpenAPI UI](http://localhost:4000/api/docs) / [OpenAPI JSON](http://localhost:4000/api/docs-json) | Running gateway's request/response API descriptions                                                 |
 | [Mobile authentication](docs/mobile-authentication.md)                                             | Google Cloud/native setup, form login, session tokens and protected resources                       |
+| [Application configuration](docs/application-config.md)                                            | Public branding, default restaurant, migration, seeding and frontend caching                        |
 | [Identity service](docs/identity-service.md)                                                       | Service boundary, private TCP startup and profile ownership                                         |
 | [Email verification](docs/email-verification.md)                                                   | Six-digit codes, Mailtrap/SMTP, resend, expiry and activation errors                                |
 | [Password management](docs/password-management.md)                                                 | Current/new password API, Google-only accounts and session revocation                               |
@@ -579,8 +589,11 @@ Apple/Facebook social login, forgot-password/email-based password recovery, voic
 | [Dynamic category preferences](docs/dynamic-category-preferences.md)                               | Live categories, localization, assets, validation and saved-profile compatibility                   |
 | [Conversation commerce](docs/conversation-commerce.md)                                             | Actions/cart, guest claiming, trusted quotes, Stripe integration and order/payment recovery         |
 | [Request logging](docs/request-logging.md)                                                         | JSON formatting, red errors, request IDs and redaction                                              |
+| [AWS staging deployment](docs/aws-staging-deployment.md) | Terraform, estimated cost, existing-data migration, secrets, backups and operations |
 | [Environment template](.env.example)                                                               | Copyable development settings                                                                       |
 | [Prisma schema](prisma/schema.prisma)                                                              | Database models and relationships                                                                   |
 | [Shared commerce contracts](libs/dto/src/commerce/contracts.ts)                                    | Validated cart, checkout address and quote RPC shapes                                               |
 
 When extending the system, add domain operations to the owning service, define shared DTOs/TCP patterns, and expose mobile-safe gateway endpoints with the existing validation, authentication and response conventions.
+
+Public application branding and address data are documented in [application configuration](docs/application-config.md). Initialize them with `npm run app:seed` after migration deployment; no additional environment variables are required. The dedicated integration runner also accepts `APP_CONFIG_TEST_DATABASE_URL`.

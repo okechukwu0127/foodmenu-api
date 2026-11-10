@@ -8,3 +8,16 @@ coverage
 prisma/migrations/*/migration_lock.toml
 
 uploads/
+
+# Deployment state, local secrets, exports and generated plans
+.cloud/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+infra/terraform/staging/backend.tf
+*.backend.hcl
+
+.terraform.tfstate.lock.info
+crash.log

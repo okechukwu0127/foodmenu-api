@@ -17,6 +17,8 @@ import {
   VerifyEmailDto,
   CustomerAddressResponseDto,
   CustomerAddressesResponseDto,
+  CustomerFavoriteResponseDto,
+  CustomerFavoritesResponseDto,
   DefaultAddressResponseDto,
   PutCustomerAddressDto,
   IdentityLogin,
@@ -122,6 +124,25 @@ export class IdentityClientService {
     return this.send<{ deleted: boolean }>(IDENTITY_PATTERNS.DELETE_ADDRESS, {
       customerId,
       addressId,
+    });
+  }
+
+  listFavorites(customerId: string) {
+    return this.send<CustomerFavoritesResponseDto>(
+      IDENTITY_PATTERNS.LIST_FAVORITES,
+      { customerId },
+    );
+  }
+  putFavorite(customerId: string, foodId: string) {
+    return this.send<CustomerFavoriteResponseDto>(
+      IDENTITY_PATTERNS.PUT_FAVORITE,
+      { customerId, foodId },
+    );
+  }
+  deleteFavorite(customerId: string, foodId: string) {
+    return this.send<{ deleted: boolean }>(IDENTITY_PATTERNS.DELETE_FAVORITE, {
+      customerId,
+      foodId,
     });
   }
 

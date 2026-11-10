@@ -19,6 +19,12 @@ async function bootstrap() {
   const port = configService.get<number>("API_GATEWAY_PORT", 4000);
   const allowedOrigin = configService.get<string>("FOODMENU_APP_URL", "*");
 
+  // Set only when the gateway is reachable exclusively through trusted proxies.
+  const proxyHops = Number(configService.get<string>("TRUST_PROXY_HOPS", "0"));
+  if (!Number.isInteger(proxyHops) || proxyHops < 0 || proxyHops > 5)
+    throw new Error("TRUST_PROXY_HOPS must be an integer between 0 and 5");
+  if (proxyHops > 0) app.getHttpAdapter().getInstance().set("trust proxy", proxyHops);
+
   app.use(
     createRequestLoggingMiddleware({
       headers: configService.get<boolean>("HTTP_LOG_HEADERS", false),

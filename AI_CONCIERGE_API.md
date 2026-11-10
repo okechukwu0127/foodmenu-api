@@ -2,7 +2,6 @@
 
 **Continuous commerce extension:** read [conversation-commerce.md](docs/conversation-commerce.md) for the current cart, claim, quote, payment and commerce-history contracts. The Stripe payment-intent endpoint now requires a server quote; client-supplied amount/order totals are no longer accepted. Keep recommendations, explicit commerce actions, payment UI and confirmed payment cards in the same conversation.
 
-
 **Dynamic category onboarding:** read [dynamic-category-preferences.md](docs/dynamic-category-preferences.md) for live menu categories, category-aware ETags, profile compatibility and recommendation behavior.
 
 The concierge runs inside the API gateway as `AiConciergeModule`. It owns only concierge configuration, profiles, restrictions, imports, conversations, messages and rate buckets. It authenticates through the existing identity client and queries menu data through the existing menu TCP service. It does not query identity/menu business tables. The shared Prisma schema supplies foreign keys to the existing customer relationship.
@@ -79,13 +78,13 @@ The stored JSON uses localized maps for `chatGreeting`, `chatStarters[].label` a
 
 Finite supported input types:
 
-| input | Answer | Stored validation |
-| --- | --- | --- |
-| single | string option ID | Known option, one selection |
+| input    | Answer              | Stored validation                                                                 |
+| -------- | ------------------- | --------------------------------------------------------------------------------- |
+| single   | string option ID    | Known option, one selection                                                       |
 | multiple | string[] option IDs | Unique options, minSelections/maxSelections, exclusive choices cannot be combined |
-| text | string | min length and maxLength; plain string data |
-| number | finite number | min/max; numeric strings are rejected |
-| boolean | boolean | Exact JSON boolean |
+| text     | string              | min length and maxLength; plain string data                                       |
+| number   | finite number       | min/max; numeric strings are rejected                                             |
+| boolean  | boolean             | Exact JSON boolean                                                                |
 
 Optional answers may be null or omitted. Required answers cannot be null or omitted unless a configured default supplies them. Limits and explicit defaults are part of the stored definition. Partial temporary answers do not apply defaults or require every question. Client display labels are plain text. Configuration is strictly validated data: no HTML/JSX, arbitrary component names, executable expressions or action URLs. Optional image/icon references are HTTPS asset references or finite plain identifiers. Options can carry `effect`:
 
@@ -113,13 +112,13 @@ An incompatible old version returns 409 `AI_CONFIG_OUTDATED` and the current ver
 
 All profile routes require Bearer auth.
 
-| Method/path | Request | data / behavior |
-| --- | --- | --- |
-| GET /preference-profiles | none | `{ profiles: [...], defaultProfileId: string|null, defaultRevision: number }` |
-| GET /preference-profiles/:id | UUID | Profile; ETag `"revision"` |
-| PUT /preference-profiles/:id | body below | Create or replace; profile and ETag |
-| DELETE /preference-profiles/:id | If-Match | Empty 204; deleting default atomically clears it and increments defaultRevision |
-| PUT /preference-profiles/default | `{ profileId: UUID|null }`, If-Match | `{ defaultProfileId, defaultRevision }` and default ETag |
+| Method/path                      | Request            | data / behavior                                                                 |
+| -------------------------------- | ------------------ | ------------------------------------------------------------------------------- |
+| GET /preference-profiles         | none               | `{ profiles: [...], defaultProfileId: string                                    | null, defaultRevision: number }`                         |
+| GET /preference-profiles/:id     | UUID               | Profile; ETag `"revision"`                                                      |
+| PUT /preference-profiles/:id     | body below         | Create or replace; profile and ETag                                             |
+| DELETE /preference-profiles/:id  | If-Match           | Empty 204; deleting default atomically clears it and increments defaultRevision |
+| PUT /preference-profiles/default | `{ profileId: UUID | null }`, If-Match                                                               | `{ defaultProfileId, defaultRevision }` and default ETag |
 
 Profile response: `{ id, name, configVersion, answers, revision, createdAt, updatedAt }`. Names are trimmed user-entered content. The configured count/name limits are enforced while holding an owner-state row lock. Same names can identify distinct profiles. Saving never selects a default automatically. `/default` is registered before `/:id`.
 
@@ -215,14 +214,14 @@ Frontend owns local storage, pending writes and retry scheduling. This backend d
 
 ## Conversations and context
 
-| Method/path | Access | Request/response data |
-| --- | --- | --- |
-| POST /conversations | Bearer or guest | body below; conversation, contextRevision and optional new guestToken |
-| GET /conversations | Bearer only | `?limit=&cursor=` -> `{ conversations, nextCursor }` |
-| GET /conversations/:id | Owner Bearer or bound guest token | Current conversation/context and context ETag |
-| GET /conversations/:id/messages | Owner Bearer or bound guest token | `?limit=&cursor=` -> `{ messages, nextCursor }` |
-| DELETE /conversations/:id | Owner Bearer or bound guest token | empty 204 |
-| PUT /conversations/:id/context | Owner Bearer or bound guest token | body below, If-Match context revision; updated conversation and ETag |
+| Method/path                     | Access                            | Request/response data                                                 |
+| ------------------------------- | --------------------------------- | --------------------------------------------------------------------- |
+| POST /conversations             | Bearer or guest                   | body below; conversation, contextRevision and optional new guestToken |
+| GET /conversations              | Bearer only                       | `?limit=&cursor=` -> `{ conversations, nextCursor }`                  |
+| GET /conversations/:id          | Owner Bearer or bound guest token | Current conversation/context and context ETag                         |
+| GET /conversations/:id/messages | Owner Bearer or bound guest token | `?limit=&cursor=` -> `{ messages, nextCursor }`                       |
+| DELETE /conversations/:id       | Owner Bearer or bound guest token | empty 204                                                             |
+| PUT /conversations/:id/context  | Owner Bearer or bound guest token | body below, If-Match context revision; updated conversation and ETag  |
 
 Creation body:
 
@@ -302,29 +301,31 @@ Disconnects abort provider work and persist CANCELLED/partial content. Provider 
 Create the conversation first. Do not send DefaultChatTransport's default full-message body to this endpoint. Example (adapt token storage and base URL to your app):
 
 ```typescript
-import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
-import { fetch as expoFetch } from 'expo/fetch';
-import * as Crypto from 'expo-crypto';
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
+import { fetch as expoFetch } from "expo/fetch";
+import * as Crypto from "expo-crypto";
 
 const transport = new DefaultChatTransport({
   api: `${apiBase}/api/v1/ai/chat`,
   fetch: expoFetch as typeof globalThis.fetch,
-  headers: () => sessionToken
-    ? { Authorization: `Bearer ${sessionToken}` }
-    : { 'X-AI-Guest-Token': guestToken },
+  headers: () =>
+    sessionToken
+      ? { Authorization: `Bearer ${sessionToken}` }
+      : { "X-AI-Guest-Token": guestToken },
   prepareSendMessagesRequest: ({ messages, trigger }) => {
-    if (trigger !== 'submit-message') throw new Error('Use a new user turn');
+    if (trigger !== "submit-message") throw new Error("Use a new user turn");
     const message = messages.at(-1);
-    if (!message || message.role !== 'user') throw new Error('User text required');
+    if (!message || message.role !== "user")
+      throw new Error("User text required");
     return {
       body: {
         conversationId,
         clientMessageId: message.id,
         text: message.parts
-          .filter(part => part.type === 'text')
-          .map(part => part.text)
-          .join('\n'),
+          .filter((part) => part.type === "text")
+          .map((part) => part.text)
+          .join("\n"),
         locale,
       },
     };
@@ -344,7 +345,7 @@ Keep transport state scoped to the current conversation/account. Persist the ori
 
 ## Menu tools and cards
 
-Allowlisted Gemini tools: searchMenu(query?), getRecommendations(query?), getFoodDetails(foodId). Inputs use strict Zod schemas. The model cannot add tools, pass ownership IDs, execute order/payment operations or alter stored preferences. A menu tool is required on the first generation step when recommendations are enabled. Tool calls/results are bounded by configured step, result, scan and character budgets. Errors become safe tool results; no invented fallback meals are produced by the backend.
+Allowlisted Gemini tools: searchMenu(query?, showCard), getRecommendations(query?, showCard), getFoodDetails(foodId, showCard). `showCard` is required: set it to `true` when the customer asks for food options to display, and `false` when a tool lookup only supports a conversational follow-up. Recent validated recommendation cards are included in model context so references such as "this" can be resolved; ambiguous references should prompt a concise clarification rather than repeating cards. Inputs use strict Zod schemas. The model cannot add tools, pass ownership IDs, execute order/payment operations or alter stored preferences. Tool choice is automatic: Gemini can answer greetings, general conversation and non-menu questions directly, while system instructions direct it to use menu tools for food recommendations and current menu facts. Tool calls/results are bounded by configured step, result, scan and character budgets. Errors become safe tool results; no invented fallback meals are produced by the backend.
 
 The existing menu RPC returns major-unit prices. The adapter converts to integer minor units with a three-letter uppercase currency. The entire concierge card contract uses minor units; the rest of the existing mobile menu API is unchanged. Unavailable foods are excluded. Explicit diets must be restaurant declared. Budgets apply to the base meal in the selected currency, not unknown extras, taxes or delivery fees; incompatible currencies are excluded rather than converted. Eligible results are ranked by authoritative base price then ID. Bounded scans may omit later matches; cards include scanned/truncated.
 
@@ -369,12 +370,12 @@ Empty recommendation cards are not emitted or persisted as UI cards. The model r
 
 Versioned custom UIMessage data parts (authoritative Zod schemas in `tools/cards.schema.ts`):
 
-| type | data |
-| --- | --- |
+| type                      | data                                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------- |
 | data-food-recommendations | `{ version: 1, foods: FoodCard[], scanned, truncated, missingInformation: string[], disclaimer }` |
-| data-food-details | `{ version: 1, food: FoodCard, disclaimer }` |
-| data-preference-summary | `{ version: 1, profileId: UUID|null, profileRevision: number|null, accountRevision: number|null, allergyState, allergens: string[], diets: string[], preferredCategoryIds: string[] }` |
-| data-chat-starters | `{ version: 1, chatStarters: [{ id, label, prompt, icon }] }` (exactly four searches) |
+| data-food-details         | `{ version: 1, food: FoodCard, disclaimer }`                                                      |
+| data-preference-summary   | `{ version: 1, profileId: UUID                                                                    | null, profileRevision: number | null, accountRevision: number | null, allergyState, allergens: string[], diets: string[], preferredCategoryIds: string[] }` |
+| data-chat-starters        | `{ version: 1, chatStarters: [{ id, label, prompt, icon }] }` (exactly four searches)             |
 
 ### Food names and contextual search starters
 
@@ -407,19 +408,19 @@ Each custom chunk carries a stable id; the persisted part retains its type/id/da
 
 ## Error codes
 
-| HTTP / stream | Codes |
-| --- | --- |
-| 400 | AI_INVALID_INPUT, AI_UNSUPPORTED_LOCALE, AI_UNKNOWN_QUESTION, AI_ANSWER_REQUIRED, AI_INVALID_ANSWER, AI_INVALID_PROFILE_NAME, AI_IMPORT_LIMIT, AI_INVALID_CURSOR, AI_CONTEXT_LIMIT |
-| 401 | Existing invalid-session errors, AI_UNAUTHORIZED, AI_GUEST_EXPIRED |
-| 403 | AI_GUEST_DISABLED |
-| 404 | AI_PROFILE_NOT_FOUND, AI_CONVERSATION_NOT_FOUND |
-| 409 | AI_CONFIG_OUTDATED, AI_PROFILE_ID_CONFLICT, AI_PROFILE_LIMIT, AI_IMPORT_CONFLICT, AI_ACCOUNT_PREFERENCES_CONFLICT, AI_MESSAGE_ID_CONFLICT, AI_TURN_IN_PROGRESS, AI_TURN_FAILED |
-| 410 | AI_PROFILE_DELETED, AI_CONVERSATION_EXPIRED |
-| 412 | AI_STALE_REVISION |
-| 428 | AI_PRECONDITION_REQUIRED |
-| 429 | AI_RATE_LIMITED, AI_GUEST_LIMIT, existing gateway throttling errors |
-| 503 before stream | AI_NOT_CONFIGURED, AI_CONFIG_INVALID, AI_DISABLED, AI_FEATURE_DISABLED, AI_PROVIDER_UNAVAILABLE |
-| error event after stream | AI_PROVIDER_UNAVAILABLE, AI_PROVIDER_TIMEOUT, AI_CANCELLED, AI_STREAM_FAILED, AI_HISTORY_INVALID |
+| HTTP / stream            | Codes                                                                                                                                                                              |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 400                      | AI_INVALID_INPUT, AI_UNSUPPORTED_LOCALE, AI_UNKNOWN_QUESTION, AI_ANSWER_REQUIRED, AI_INVALID_ANSWER, AI_INVALID_PROFILE_NAME, AI_IMPORT_LIMIT, AI_INVALID_CURSOR, AI_CONTEXT_LIMIT |
+| 401                      | Existing invalid-session errors, AI_UNAUTHORIZED, AI_GUEST_EXPIRED                                                                                                                 |
+| 403                      | AI_GUEST_DISABLED                                                                                                                                                                  |
+| 404                      | AI_PROFILE_NOT_FOUND, AI_CONVERSATION_NOT_FOUND                                                                                                                                    |
+| 409                      | AI_CONFIG_OUTDATED, AI_PROFILE_ID_CONFLICT, AI_PROFILE_LIMIT, AI_IMPORT_CONFLICT, AI_ACCOUNT_PREFERENCES_CONFLICT, AI_MESSAGE_ID_CONFLICT, AI_TURN_IN_PROGRESS, AI_TURN_FAILED     |
+| 410                      | AI_PROFILE_DELETED, AI_CONVERSATION_EXPIRED                                                                                                                                        |
+| 412                      | AI_STALE_REVISION                                                                                                                                                                  |
+| 428                      | AI_PRECONDITION_REQUIRED                                                                                                                                                           |
+| 429                      | AI_RATE_LIMITED, AI_GUEST_LIMIT, existing gateway throttling errors                                                                                                                |
+| 503 before stream        | AI_NOT_CONFIGURED, AI_CONFIG_INVALID, AI_DISABLED, AI_FEATURE_DISABLED, AI_PROVIDER_UNAVAILABLE                                                                                    |
+| error event after stream | AI_PROVIDER_UNAVAILABLE, AI_PROVIDER_TIMEOUT, AI_CANCELLED, AI_STREAM_FAILED, AI_HISTORY_INVALID                                                                                   |
 
 Menu provider failures and ineligible details are converted to safe tool results (AI_MENU_UNAVAILABLE_OR_INELIGIBLE), not leaked exception payloads. Tool/result bounds return AI_TOOL_LIMIT / AI_TOOL_RESULT_LIMIT. A lost worker is recorded as AI_WORKER_LOST in history.
 

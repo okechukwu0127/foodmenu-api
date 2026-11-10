@@ -1,0 +1,20 @@
+server {
+  listen 80 default_server;
+  server_name _;
+  access_log off;
+  client_max_body_size 6m;
+  if ($http_x_foodmenu_origin != "__ORIGIN_TOKEN__") { return 403; }
+  location / {
+    proxy_pass http://127.0.0.1:4000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Connection "";
+    proxy_set_header X-FoodMenu-Origin "";
+    proxy_buffering off;
+    proxy_request_buffering off;
+    proxy_read_timeout 65s;
+    proxy_send_timeout 65s;
+  }
+}

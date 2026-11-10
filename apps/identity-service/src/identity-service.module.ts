@@ -10,6 +10,8 @@ import { IdentityExceptionFilter } from "./identity-exception.filter";
 
 import { AddressesService } from "./addresses/addresses.service";
 import { IdentityAddressesController } from "./addresses/addresses.controller";
+import { FavoritesService } from "./favorites/favorites.service";
+import { IdentityFavoritesController } from "./favorites/favorites.controller";
 
 import { EmailVerificationService } from "./email/email-verification.service";
 import { VerificationMailService } from "./email/verification-mail.service";
@@ -25,9 +27,14 @@ import { ProfilePhotoStorageService } from "./photos/profile-photo-storage.servi
     }),
     DatabaseModule,
   ],
-  controllers: [IdentityController, IdentityAddressesController],
+  controllers: [
+    IdentityController,
+    IdentityAddressesController,
+    IdentityFavoritesController,
+  ],
   providers: [
     AddressesService,
+    FavoritesService,
     AuthService,
     ProfilePhotoStorageService,
     EmailVerificationService,

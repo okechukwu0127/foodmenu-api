@@ -8,6 +8,7 @@ import { AuthGuard } from "./auth.guard";
 import { CustomerAccessService } from "./customer-access.service";
 
 import { AddressesController } from "./addresses.controller";
+import { FavoritesController } from "./favorites.controller";
 
 import { ProfilePhotoController } from "./profile-photo.controller";
 
@@ -29,7 +30,12 @@ import { ProfilePhotoController } from "./profile-photo.controller";
       },
     ]),
   ],
-  controllers: [AuthController, AddressesController, ProfilePhotoController],
+  controllers: [
+    AuthController,
+    AddressesController,
+    FavoritesController,
+    ProfilePhotoController,
+  ],
   providers: [IdentityClientService, AuthGuard, CustomerAccessService],
   exports: [IdentityClientService, AuthGuard, CustomerAccessService],
 })

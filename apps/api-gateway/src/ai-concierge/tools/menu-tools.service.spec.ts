@@ -60,8 +60,11 @@ describe("Concierge menu tools and structured cards", () => {
       emit,
       new AbortController().signal,
     );
-    await tools.getFoodDetails.execute!({ foodId: "real-id" }, {} as never);
-    await tools.searchMenu.execute!({}, {} as never);
+    await tools.getFoodDetails.execute!(
+      { foodId: "real-id", showCard: true },
+      {} as never,
+    );
+    await tools.searchMenu.execute!({ showCard: true }, {} as never);
     expect(emit.mock.calls.map((c) => c[0])).toEqual([
       "data-food-details",
       "data-food-recommendations",
@@ -75,6 +78,27 @@ describe("Concierge menu tools and structured cards", () => {
     expect(emit.mock.calls[1][1].foods[0].recommendationReason).toMatch(
       /\*\*Meal\*\*.*£12\.50/,
     );
+  });
+  it("returns menu data without repeating a card for conversational follow-ups", async () => {
+    send.mockReturnValue(of({ items: [food], nextCursor: null }));
+    const emit = jest.fn();
+    const tools = service.create(
+      config,
+      context,
+      "en",
+      emit,
+      new AbortController().signal,
+    );
+
+    const result = await tools.searchMenu.execute!(
+      { query: "pizza", showCard: false },
+      {} as never,
+    );
+
+    expect(result).toMatchObject({
+      foods: [expect.objectContaining({ id: food.id })],
+    });
+    expect(emit).not.toHaveBeenCalled();
   });
   it("does not return details for unavailable or restricted/unknown-allergen foods", async () => {
     send.mockReturnValue(of(food));
@@ -90,7 +114,7 @@ describe("Concierge menu tools and structured cards", () => {
       new AbortController().signal,
     );
     const result = await tools.getFoodDetails.execute!(
-      { foodId: "real-id" },
+      { foodId: "real-id", showCard: true },
       {} as never,
     );
     expect(result).toHaveProperty("error");
@@ -109,7 +133,10 @@ describe("Concierge menu tools and structured cards", () => {
       emit,
       new AbortController().signal,
     );
-    const result = await tools.getRecommendations.execute!({}, {} as never);
+    const result = await tools.getRecommendations.execute!(
+      { showCard: true },
+      {} as never,
+    );
     expect(result).toMatchObject({ foods: [] });
     expect(result).toMatchObject({
       disclaimer: "",
@@ -175,12 +202,17 @@ describe("Concierge menu tools and structured cards", () => {
       emit,
       new AbortController().signal,
     );
-    const result: any = await tools.searchMenu.execute!({}, {} as never);
+    const result: any = await tools.searchMenu.execute!(
+      { showCard: true },
+      {} as never,
+    );
     expect(result.truncated).toBe(true);
     expect(send).toHaveBeenCalledTimes(1);
-    await tools.searchMenu.execute!({}, {} as never);
-    await tools.searchMenu.execute!({}, {} as never);
-    expect(await tools.searchMenu.execute!({}, {} as never)).toEqual({
+    await tools.searchMenu.execute!({ showCard: true }, {} as never);
+    await tools.searchMenu.execute!({ showCard: true }, {} as never);
+    expect(
+      await tools.searchMenu.execute!({ showCard: true }, {} as never),
+    ).toEqual({
       error: "AI_TOOL_LIMIT",
     });
   });
@@ -195,14 +227,16 @@ describe("Concierge menu tools and structured cards", () => {
       new AbortController().signal,
     );
     expect(
-      JSON.stringify(await tools.searchMenu.execute!({}, {} as never)),
+      JSON.stringify(
+        await tools.searchMenu.execute!({ showCard: true }, {} as never),
+      ),
     ).not.toContain("private credentials");
     const abort = new AbortController();
     abort.abort();
     const cancelled = service.create(config, context, "en", emit, abort.signal);
-    expect(await cancelled.searchMenu.execute!({}, {} as never)).toEqual({
-      error: "AI_CANCELLED",
-    });
+    expect(
+      await cancelled.searchMenu.execute!({ showCard: true }, {} as never),
+    ).toEqual({ error: "AI_CANCELLED" });
     expect(emit).not.toHaveBeenCalled();
   });
   it("normalizes sizes and extras into validated localized minor-unit prices", async () => {

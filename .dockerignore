@@ -6,3 +6,9 @@ dist
 coverage
 uploads
 *.log
+
+.cloud
+**/.terraform
+**/*.tfstate*
+**/*.tfplan
+**/*.tfvars

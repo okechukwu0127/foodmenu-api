@@ -1,0 +1,7 @@
+aws_profile = "foodmenu-deploy-PowerUserAccess-844706634415"
+account_id = "844706634415"
+region = "eu-west-2"
+environment = "staging"
+instance_type = "t4g.medium"
+disk_gb = 60
+# Pin ami_id to the AMI approved in the first saved plan before later updates.
