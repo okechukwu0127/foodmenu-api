@@ -67,6 +67,24 @@ export class OrdersService {
       lastName: customer.lastName,
       phone: payload.customer?.phone ?? customer.phone,
     };
+    // Couriers need a phone number for delivery (Stuart rejects the job when
+    // the address is imprecise, e.g. no house number). Check before payment so
+    // a customer is never charged for an order that cannot be dispatched.
+    const fulfilment =
+      payload.metadata?.fulfilment ?? payload.order?.metadata?.fulfilment;
+    const isDelivery =
+      fulfilment !== "pickup" && payload.order?.deliveryAddress != null;
+    if (
+      isDelivery &&
+      !customerContact.phone?.trim() &&
+      !this.configService.get<string>("STUART_FALLBACK_CUSTOMER_PHONE")?.trim()
+    ) {
+      throw new RpcException({
+        code: "PHONE_REQUIRED",
+        statusCode: 422,
+        message: "Add a phone number to your profile so the courier can reach you.",
+      });
+    }
 
     const orderId = payload.order?.id ?? payload.orderId;
     const checkoutSessionId =

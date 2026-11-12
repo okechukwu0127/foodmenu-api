@@ -179,7 +179,7 @@ export class MenuToolsService {
       }),
       getFoodDetails: tool({
         description:
-          "Get authoritative details, prices, sizes and modifier groups for a real food ID; restrictions cannot be bypassed. Set showCard false when the customer asks a conversational follow-up about a food already shown.",
+          "Get authoritative details, prices, sizes and modifier groups for a real food ID; restrictions cannot be bypassed. Set showCard true when the customer chooses, wants or confirms this food so they can add it to the cart; set false only when answering a question about a food already shown.",
         inputSchema: z
           .object({
             foodId: z.string().min(1).max(128),
