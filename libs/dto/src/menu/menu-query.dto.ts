@@ -11,6 +11,18 @@ import {
 } from "class-validator";
 
 export class FoodListQueryDto {
+  @ApiPropertyOptional({ description: "Exact food, deal, or hot-combo ID" })
+  @IsOptional()
+  @IsString()
+  id?: string;
+
+  @ApiPropertyOptional({
+    description: "Exact food ID (linked food for promotions)",
+  })
+  @IsOptional()
+  @IsString()
+  foodId?: string;
+
   @ApiPropertyOptional({ example: "burgers" })
   @IsOptional()
   @IsString()
@@ -53,7 +65,102 @@ export class FoodListQueryDto {
   @IsInt()
   @Min(1)
   page = 1;
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      "Omit fulfillmentOptions from food objects and database selection",
+  })
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === "true" || value === true
+      ? true
+      : value === "false" || value === false
+        ? false
+        : value,
+  )
+  @IsBoolean()
+  hideFulfillmentOptions?: boolean;
+
+  @ApiPropertyOptional({
+    default: false,
+    description: "Omit modifierGroups from food objects and database selection",
+  })
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === "true" || value === true
+      ? true
+      : value === "false" || value === false
+        ? false
+        : value,
+  )
+  @IsBoolean()
+  hideModifierGroups?: boolean;
+
+  @ApiPropertyOptional({
+    default: false,
+    description: "Omit sideOptions from food objects and database selection",
+  })
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === "true" || value === true
+      ? true
+      : value === "false" || value === false
+        ? false
+        : value,
+  )
+  @IsBoolean()
+  hideSideOptions?: boolean;
+
+  @ApiPropertyOptional({
+    default: false,
+    description: "Omit sizeOptions from food objects and database selection",
+  })
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === "true" || value === true
+      ? true
+      : value === "false" || value === false
+        ? false
+        : value,
+  )
+  @IsBoolean()
+  hideSizeOptions?: boolean;
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      "Omit appetizerOptions from food objects and database selection",
+  })
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === "true" || value === true
+      ? true
+      : value === "false" || value === false
+        ? false
+        : value,
+  )
+  @IsBoolean()
+  hideAppetizerOptions?: boolean;
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      "Omit the images objects (alt text, sort order). The image URL list is kept for cards.",
+  })
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === "true" || value === true
+      ? true
+      : value === "false" || value === false
+        ? false
+        : value,
+  )
+  @IsBoolean()
+  hideImages?: boolean;
 }
+
+/** Same filters and projection controls; id/cursor refer to promotion IDs. */
+export class PromotionListQueryDto extends FoodListQueryDto {}
 
 export class FoodIdParamDto {
   @IsString()

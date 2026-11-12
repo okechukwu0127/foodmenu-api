@@ -45,7 +45,8 @@ elif [ "$mode" = deploy ]; then
   initialized=$("${compose[@]}" exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT count(*) FROM pg_tables WHERE schemaname = '\''public'\'' AND tablename = '\''_prisma_migrations'\''"')
   [ "$initialized" = 1 ] || { echo "Deploy refused: migrate the existing database first." >&2; exit 1; }
 else echo "Unknown mode" >&2; exit 1; fi
-# Restore data first, then deploy only pending schema migrations. Never run seeds.
+# Restore data first, then deploy only pending schema migrations. Seeds never run
+# automatically; the additive catalogue seed runs only via `manage.cjs seed`.
 if [ "$mode" = deploy ]; then "${compose[@]}" stop api-gateway identity-service menu-service order-service payment-service; fi
 "${compose[@]}" run --rm tools npx prisma migrate deploy
 # Daily database + photo backups to the private, expiring S3 prefix.

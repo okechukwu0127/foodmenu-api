@@ -453,13 +453,53 @@ describeDb("AI Food Concierge (HTTP + Prisma, mocked Gemini/menu RPC)", () => {
       .filter((l) => l.startsWith("data: ") && !l.includes("[DONE]"))
       .map((l) => JSON.parse(l.slice(6)));
 
+  it("publishes offer chat starters with the search scope they switch to", async () => {
+    const response = await api().get("/api/v1/ai/config?locale=en").expect(200);
+    const starters = response.body.data.content.chatStarters;
+    expect(starters).toHaveLength(10);
+    expect(starters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "todays-deals", searchScope: "deal" }),
+        expect.objectContaining({ id: "hot-combos", searchScope: "combo" }),
+        expect.objectContaining({ id: "pizza-offers", searchScope: "deal" }),
+        expect.not.objectContaining({ searchScope: expect.anything() }),
+      ]),
+    );
+  });
+
+  it("limits the AI's tools to the chat input's search scope", async () => {
+    const conv = await create().expect(201);
+    await chat(conv.body.data.id, randomUUID(), auth, undefined, {
+      searchScope: "deal",
+    }).expect(200);
+    const scoped = provider.stream.mock.calls[0][0];
+    expect(Object.keys(scoped.tools).sort()).toEqual([
+      "getFoodDetails",
+      "searchOffers",
+    ]);
+    expect(scoped.system).toContain("deals only");
+
+    provider.stream.mockClear();
+    await chat(conv.body.data.id).expect(200);
+    expect(Object.keys(provider.stream.mock.calls[0][0].tools).sort()).toEqual([
+      "getFoodDetails",
+      "getRecommendations",
+      "searchMenu",
+      "searchOffers",
+    ]);
+
+    await chat(conv.body.data.id, randomUUID(), auth, undefined, {
+      searchScope: "everything",
+    }).expect(400);
+  });
+
   it("returns versioned localized public config and supports conditional GET", async () => {
     const response = await api().get("/api/v1/ai/config?locale=en").expect(200);
     expect(response.body.data.version).toBe("v1");
     expect(response.body.data.content.chatGreeting).toBe(
       seed().content.chatGreeting.en,
     );
-    expect(response.body.data.content.chatStarters).toHaveLength(6);
+    expect(response.body.data.content.chatStarters).toHaveLength(10);
     expect(response.body.data.content.chatStarters[0]).toEqual({
       id: "something-spicy",
       label: "Something spicy",

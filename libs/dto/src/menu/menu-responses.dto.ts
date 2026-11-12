@@ -131,31 +131,51 @@ export class FoodDetailsResponseDto {
   @ApiProperty({ example: true })
   isPopular!: boolean;
 
-  @ApiProperty({ type: [FoodImageResponseDto] })
+  @ApiPropertyOptional({ type: [FoodImageResponseDto] })
   images!: FoodImageResponseDto[];
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: [Object],
     description: "Available delivery and pickup options",
   })
   fulfillmentOptions!: Record<string, unknown>[];
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: [String],
     example: ["mod_burger_size", "mod_burger_extras"],
   })
   modifierGroupIds!: string[];
 
-  @ApiProperty({ type: [ModifierGroupResponseDto] })
+  @ApiPropertyOptional({ type: [ModifierGroupResponseDto] })
   modifierGroups!: ModifierGroupResponseDto[];
+  @ApiPropertyOptional({ type: [Object] })
+  sideOptions?: unknown[];
+
+  @ApiPropertyOptional({ type: [Object] })
+  sizeOptions?: unknown[];
+
+  @ApiPropertyOptional({ type: [Object] })
+  appetizerOptions?: unknown[];
 }
 
-export class FoodListResponseDto {
+export class MenuPaginationResponseDto {
+  @ApiProperty({
+    nullable: true,
+    description:
+      "Last returned slug for foods; last returned ID for promotions. Null when there is no next page.",
+  })
+  nextCursor!: string | null;
+
+  @ApiProperty()
+  hasNextPage!: boolean;
+
+  @ApiProperty({ example: 20 })
+  limit!: number;
+}
+
+export class FoodListResponseDto extends MenuPaginationResponseDto {
   @ApiProperty({ type: [FoodDetailsResponseDto] })
   items!: FoodDetailsResponseDto[];
-
-  @ApiPropertyOptional({ example: "next-food-slug" })
-  nextCursor?: string | null;
 }
 
 export class DealResponseDto {
@@ -262,25 +282,14 @@ export class MenuBootstrapResponseDto {
 
   @ApiProperty({ type: [CategoryResponseDto] })
   categories!: CategoryResponseDto[];
+}
 
+export class DealListResponseDto extends MenuPaginationResponseDto {
   @ApiProperty({ type: [DealResponseDto] })
-  deals!: DealResponseDto[];
+  items!: DealResponseDto[];
+}
 
+export class HotComboListResponseDto extends MenuPaginationResponseDto {
   @ApiProperty({ type: [HotComboResponseDto] })
-  hotCombos!: HotComboResponseDto[];
-
-  @ApiProperty({ type: [DrinkAddOnResponseDto] })
-  drinkAddOns!: DrinkAddOnResponseDto[];
-
-  @ApiProperty({ type: [ModifierGroupResponseDto] })
-  modifierGroups!: ModifierGroupResponseDto[];
-
-  @ApiProperty({ isArray: true })
-  modifierLabelTranslations!: unknown[];
-
-  @ApiProperty({ isArray: true })
-  defaultModifierGroupIds!: unknown[];
-
-  @ApiProperty({ type: [FoodDetailsResponseDto] })
-  foodItems!: FoodDetailsResponseDto[];
+  items!: HotComboResponseDto[];
 }

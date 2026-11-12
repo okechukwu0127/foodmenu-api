@@ -23,6 +23,20 @@ const localized = (value: unknown, locale: string): string | null => {
         : null;
   return typeof selected === "string" ? selected.slice(0, 1000) : null;
 };
+/** Hard cap on food cards per AI search, whatever the published config says. */
+export const MAX_AI_FOOD_RESULTS = 6;
+
+// Search only needs card fields. Full details come from GET_FOOD_BY_ID when
+// the model calls getFoodDetails or the customer selects a food.
+const SEARCH_PROJECTION = {
+  hideAppetizerOptions: true,
+  hideFulfillmentOptions: true,
+  hideImages: true,
+  hideModifierGroups: true,
+  hideSideOptions: true,
+  hideSizeOptions: true,
+} as const;
+
 const rawFood = z.object({
   id: z.string().max(128),
   categoryId: z.string().min(1).max(128).optional(),
@@ -31,9 +45,15 @@ const rawFood = z.object({
   currency: z.string().regex(/^[A-Z]{3}$/i),
   price: z.number().finite().nonnegative(),
   isFoodAvailable: z.boolean(),
-  images: z.array(z.object({ url: z.string().max(1000) })).max(50),
+  // Full responses carry `images` objects; card projections (hideImages) carry
+  // only the `image` URL list.
+  images: z
+    .array(z.object({ url: z.string().max(1000) }))
+    .max(50)
+    .optional(),
+  image: z.array(z.string().max(1000)).max(50).optional(),
   dietaryInfo: z.unknown().optional(),
-  modifierGroups: z.array(z.any()).max(50),
+  modifierGroups: z.array(z.any()).max(50).default([]),
   sizeOptions: z.unknown().optional(),
   appetizerOptions: z.unknown().optional(),
   sideOptions: z.unknown().optional(),
@@ -76,6 +96,17 @@ export function exclusionReasons(
       );
   }
   return reasons;
+}
+/**
+ * The menu search also matches descriptions, tags and option names, so rank
+ * foods whose name contains the query first, then description matches.
+ */
+export function queryRelevance(food: FoodCard, query?: string): number {
+  const needle = query?.trim().toLowerCase();
+  if (!needle) return 0;
+  if (food.name?.toLowerCase().includes(needle)) return 0;
+  if (food.description?.toLowerCase().includes(needle)) return 1;
+  return 2;
 }
 export function eligible(food: FoodCard, context: EffectiveContext): boolean {
   return exclusionReasons(food, context).length === 0;
@@ -147,7 +178,9 @@ export class ConciergeMenuAdapter {
       description: localized(f.description, locale),
       price: { amountMinor: amount(f.price), currency },
       available: f.isFoodAvailable,
-      images: f.images.map((i) => i.url).filter((u) => /^https?:\/\//.test(u)),
+      images: (f.images?.map((i) => i.url) ?? f.image ?? []).filter((u) =>
+        /^https?:\/\//.test(u),
+      ),
       dietaryInfo: dietary.success ? dietary.data : null,
       informationStatus: dietary.success ? "restaurant-declared" : "unknown",
       modifierGroups: f.modifierGroups.map((g) => ({
@@ -241,6 +274,7 @@ export class ConciergeMenuAdapter {
         ...(source.categoryId ? { categoryId: source.categoryId } : {}),
         page: source.page,
         limit: 50,
+        ...SEARCH_PROJECTION,
       });
       if (!Array.isArray(response?.items))
         fail("AI_MENU_INVALID", "Invalid menu results", 503);
@@ -262,6 +296,7 @@ export class ConciergeMenuAdapter {
     truncated = truncated || queue.length > 0;
     foods.sort(
       (a, b) =>
+        queryRelevance(a, query) - queryRelevance(b, query) ||
         Number(preferred.has(b.categoryId ?? "")) -
           Number(preferred.has(a.categoryId ?? "")) ||
         a.price.amountMinor - b.price.amountMinor ||
@@ -269,22 +304,127 @@ export class ConciergeMenuAdapter {
     );
     return {
       version: 1 as const,
-      foods: foods.slice(0, config.chatLimits.toolResults).map((f) => ({
-        ...f,
-        recommendationReason: recommendationReason(f, context, locale, {
-          categories: preferred,
-          explicitCategory: Boolean(requestedIds?.length),
-          query,
-        }),
-        customisationStatus: "details-required" as const,
-        modifierGroups: [],
-        sizes: null,
-        extras: null,
-      })),
+      foods: foods
+        .slice(0, Math.min(config.chatLimits.toolResults, MAX_AI_FOOD_RESULTS))
+        .map((f) => ({
+          ...f,
+          recommendationReason: recommendationReason(f, context, locale, {
+            categories: preferred,
+            explicitCategory: Boolean(requestedIds?.length),
+            query,
+          }),
+          customisationStatus: "details-required" as const,
+          modifierGroups: [],
+          sizes: null,
+          extras: null,
+        })),
       scanned,
       truncated,
       missingInformation: foods.length ? [] : [...exclusions],
       // Preserve the existing card shape without displaying a blanket warning.
+      disclaimer: "",
+    };
+  }
+  /**
+   * Deals and hot combos as food cards (their linked bundle food), badged with
+   * kind "deal" or "combo". Customising opens the linked food, as for foods.
+   */
+  async offers(
+    query: string | undefined,
+    kind: "deal" | "combo" | "any",
+    config: ConciergeConfig,
+    context: EffectiveContext,
+    locale: string,
+  ) {
+    const sources: ("deal" | "combo")[] =
+      kind === "any" ? ["deal", "combo"] : [kind];
+    const cards: FoodCard[] = [],
+      seen = new Set<string>(),
+      exclusions = new Set<string>();
+    let scanned = 0,
+      truncated = false;
+    for (const source of sources) {
+      let cursor: string | undefined,
+        pages = 0;
+      do {
+        const response = await this.send(
+          source === "deal"
+            ? MENU_PATTERNS.GET_DEALS
+            : MENU_PATTERNS.GET_HOT_COMBOS,
+          {
+            search: query,
+            limit: 50,
+            ...(cursor ? { cursor } : {}),
+            ...SEARCH_PROJECTION,
+          },
+        );
+        if (!Array.isArray(response?.items))
+          fail("AI_MENU_INVALID", "Invalid menu results", 503);
+        for (const offer of response.items.slice(0, 50)) {
+          // Offers without a linked food cannot be customised or ordered.
+          if (!offer?.foodItem) continue;
+          const food = this.map(offer.foodItem, locale);
+          scanned++;
+          const reasons = exclusionReasons(food, context);
+          reasons.forEach((reason) => exclusions.add(reason));
+          // Some catalogues repeat an offer (same name and price) under
+          // different IDs; show one card per offer the customer can tell apart.
+          const key = `${source}|${food.name ?? food.id}|${food.price.amountMinor}`;
+          if (reasons.length || seen.has(food.id) || seen.has(key)) continue;
+          seen.add(food.id);
+          seen.add(key);
+          const image =
+            typeof offer.imageUrl === "string" &&
+            /^https?:\/\//.test(offer.imageUrl)
+              ? offer.imageUrl
+              : null;
+          cards.push({
+            ...food,
+            kind: source,
+            offer: {
+              id: String(offer.id),
+              label: localized(
+                source === "deal" ? offer.offerDelivery : offer.categoryLabel,
+                locale,
+              ),
+            },
+            images: image
+              ? [image, ...food.images.filter((url) => url !== image)]
+              : food.images,
+          });
+        }
+        cursor = response.nextCursor ?? undefined;
+      } while (cursor && ++pages < config.chatLimits.menuScanPages);
+      truncated = truncated || Boolean(cursor);
+    }
+    // Keep the restaurant's offer order within each relevance tier.
+    const ranked = cards
+      .map((card, index) => ({ card, index }))
+      .sort(
+        (a, b) =>
+          queryRelevance(a.card, query) - queryRelevance(b.card, query) ||
+          a.index - b.index,
+      )
+      .map(({ card }) => card);
+    return {
+      version: 1 as const,
+      foods: ranked
+        .slice(0, Math.min(config.chatLimits.toolResults, MAX_AI_FOOD_RESULTS))
+        .map((f) => ({
+          ...f,
+          recommendationReason: recommendationReason(f, context, locale, {
+            categories: new Set<string>(),
+            explicitCategory: false,
+            query,
+          }),
+          customisationStatus: "details-required" as const,
+          modifierGroups: [],
+          sizes: null,
+          extras: null,
+        })),
+      scanned,
+      truncated,
+      missingInformation: ranked.length ? [] : [...exclusions],
       disclaimer: "",
     };
   }

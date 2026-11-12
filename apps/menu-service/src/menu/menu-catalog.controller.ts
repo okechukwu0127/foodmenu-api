@@ -3,7 +3,7 @@ import { commerceRpc } from "@app/dto";
 import { Controller } from "@nestjs/common";
 import { MessagePattern, Payload } from "@nestjs/microservices";
 import { MENU_PATTERNS } from "@app/common";
-import { FoodListQueryDto } from "@app/dto";
+import { FoodListQueryDto, PromotionListQueryDto } from "@app/dto";
 import { MenuCatalogService } from "./menu-catalog.service";
 
 @Controller()
@@ -39,8 +39,8 @@ export class MenuCatalogController {
   }
 
   @MessagePattern(MENU_PATTERNS.GET_DEALS)
-  getDeals() {
-    return this.menuCatalogService.getDeals();
+  getDeals(@Payload() query: PromotionListQueryDto) {
+    return this.menuCatalogService.getDeals(query);
   }
 
   @MessagePattern(MENU_PATTERNS.GET_HERO_SLIDES)
@@ -49,8 +49,8 @@ export class MenuCatalogController {
   }
 
   @MessagePattern(MENU_PATTERNS.GET_HOT_COMBOS)
-  getHotCombos() {
-    return this.menuCatalogService.getHotCombos();
+  getHotCombos(@Payload() query: PromotionListQueryDto) {
+    return this.menuCatalogService.getHotCombos(query);
   }
 
   @MessagePattern(MENU_PATTERNS.GET_DRINK_ADD_ONS)

@@ -169,8 +169,15 @@ The health endpoint confirms the gateway is up; it does not prove every database
 # Optional explicit backup; deploy also takes one before updating.
 node scripts/cloud/manage.cjs backup
 
-# Build/push a new release, back up, apply pending migrations and restart services.
+# Build/push a new release, back up, apply pending migrations, copy new/changed
+# public/assets files (e.g. category icons) to the server and restart services.
 node scripts/cloud/manage.cjs deploy
+
+# After a deploy that changed prisma/seed-data: back up, then run the additive,
+# idempotent catalogue seed (upserts seeded records by id; never deletes), and
+# publish prisma/ai-concierge-config.json as the active AI configuration (versioned
+# by content hash; older versions stay in AiConfiguration).
+node scripts/cloud/manage.cjs seed
 
 aws ssm start-session --target <instance-id> --profile "$AWS_PROFILE" --region eu-west-2
 ```

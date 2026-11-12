@@ -11,8 +11,8 @@ const work = path.join(root, '.cloud');
 const tf = path.join(root, 'infra/terraform/staging');
 const profile = process.env.AWS_PROFILE || 'foodmenu-deploy-PowerUserAccess-844706634415';
 const command = process.argv[2];
-if (!['prepare', 'migrate', 'deploy', 'backup'].includes(command)) {
-  console.error('Usage: node scripts/cloud/manage.cjs prepare|migrate|deploy|backup'); process.exit(1);
+if (!['prepare', 'migrate', 'deploy', 'backup', 'seed'].includes(command)) {
+  console.error('Usage: node scripts/cloud/manage.cjs prepare|migrate|deploy|backup|seed'); process.exit(1);
 }
 fs.mkdirSync(work, { recursive: true, mode: 0o700 });
 process.chdir(root);
@@ -63,6 +63,16 @@ try {
   console.log(`Checking SSM readiness in ${region}...`);
   ensureSsmOnline();
   if (command === 'backup') { ssm(`bash /srv/foodmenu/backup.sh ${[bucket, region].map(quote).join(' ')}`); }
+  else if (command === 'seed') {
+    // Additive, idempotent catalogue seed (prisma/seed.ts) using the tools image of
+    // the current release, then publish prisma/ai-concierge-config.json as the active AI
+    // configuration (versioned by content hash; older versions are kept, a re-run is a
+    // no-op). Run `deploy` first so the image contains the latest seed files.
+    if (!fs.existsSync(metadataFile)) throw new Error('No deployment recorded; run `deploy` before `seed`.');
+    ssm(`bash /srv/foodmenu/backup.sh ${[bucket, region].map(quote).join(' ')}`);
+    ssm('cd /srv/foodmenu && docker compose --env-file .env --env-file .release.env -f compose.yml --profile tools run --rm tools sh -c "npm run prisma:seed && npm run ai:seed"');
+    console.log(`Catalogue seeded and AI configuration published. Verify ${output('api_url')}/api/v1/menu/bootstrap and /api/v1/ai/config?locale=en.`);
+  }
   else if (command === 'migrate') {
     if (!fs.existsSync(metadataFile)) throw new Error('Preparation has not completed: run `node scripts/cloud/manage.cjs prepare` successfully before `migrate`. The deployment metadata is created automatically; do not create it manually.');
     const metadata = JSON.parse(fs.readFileSync(metadataFile, 'utf8'));
@@ -112,6 +122,10 @@ try {
     write(cloudFile, envText);
     aws(['ssm', 'put-parameter', '--name', output('runtime_parameter'), '--type', 'SecureString', '--tier', 'Advanced', '--value', `file://${cloudFile}`, '--overwrite']);
     for (const name of ['compose.yml', 'remote.sh', 'backup.sh']) fs.copyFileSync(path.join(root, 'infra/deploy', name), path.join(directory, name));
+    // Static assets (category icons etc.) ride along in the release archive, which the
+    // server unpacks into /srv/foodmenu: new and changed files land in ./assets
+    // (mounted into the gateway); nothing there is deleted.
+    fs.cpSync(path.join(root, 'public/assets'), path.join(directory, 'assets'), { recursive: true, filter: source => path.basename(source) !== '.DS_Store' });
     write(path.join(directory, '.release.env'), `RUNTIME_IMAGE=${repository}:runtime-${release}\nTOOLS_IMAGE=${repository}:tools-${release}\n`);
     write(path.join(directory, 'nginx.conf'), fs.readFileSync(path.join(root, 'infra/deploy/nginx.conf.template'), 'utf8').replace('__ORIGIN_TOKEN__', output('origin_token')));
     const archive = path.join(work, 'release.tar.gz');

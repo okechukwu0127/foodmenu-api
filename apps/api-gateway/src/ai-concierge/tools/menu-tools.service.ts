@@ -1,10 +1,37 @@
 import { Injectable } from "@nestjs/common";
 import { tool } from "ai";
 import { z } from "zod";
-import { ConciergeConfig } from "../config/config.schema";
+import { ConciergeConfig, SearchScope } from "../config/config.schema";
 import { EffectiveContext } from "../preferences/effective-preferences.service";
 import { ConciergeMenuAdapter } from "../adapters/menu.adapter";
 import { CardType, cardSchemas } from "./cards.schema";
+
+export { searchScopes, type SearchScope } from "../config/config.schema";
+
+type MenuTools = ReturnType<MenuToolsService["create"]>;
+/**
+ * Tools offered to the model for a search scope. "food" hides offers; "deal" and
+ * "combo" hide the food search and pin searchOffers to that kind. Food details
+ * stay available so the model can answer questions about a shown card.
+ */
+export function scopeTools(
+  tools: MenuTools,
+  scope: SearchScope = "all",
+): Partial<MenuTools> {
+  if (scope === "all") return tools;
+  if (scope === "food") {
+    const { searchOffers: _offers, ...foodTools } = tools;
+    return foodTools;
+  }
+  return {
+    getFoodDetails: tools.getFoodDetails,
+    searchOffers: {
+      ...tools.searchOffers,
+      execute: (input, options) =>
+        tools.searchOffers.execute!({ ...input, kind: scope }, options),
+    } as MenuTools["searchOffers"],
+  };
+}
 
 @Injectable()
 export class MenuToolsService {
@@ -121,6 +148,32 @@ export class MenuToolsService {
                 categoryIds,
                 usePreferredCategories,
               }),
+            showCard,
+          ),
+      }),
+      searchOffers: tool({
+        description:
+          "Search current deals and hot combos (bundles such as pizza + fries + drinks, meals for 2, family offers). Use it when the customer asks about deals, offers, combos, value or feeding a group. Results are shown as food cards badged deal or combo; offer.label carries delivery terms such as 'Delivery only' (mention it). Omit query to list current offers; use one short word such as 'pizza' or 'burger' to filter. Only quote prices and contents from the results.",
+        inputSchema: z
+          .object({
+            showCard: z
+              .boolean()
+              .describe(
+                "Set true when the customer wants offers displayed; false for follow-up questions about offers already shown.",
+              ),
+            query: z.string().trim().max(80).optional(),
+            kind: z
+              .enum(["deal", "combo", "any"])
+              .default("any")
+              .describe(
+                "deal for deals/offers, combo for hot combos, any when unsure.",
+              ),
+          })
+          .strict(),
+        execute: ({ query, kind, showCard }) =>
+          run(
+            "data-food-recommendations",
+            () => this.menu.offers(query, kind, config, context, locale),
             showCard,
           ),
       }),

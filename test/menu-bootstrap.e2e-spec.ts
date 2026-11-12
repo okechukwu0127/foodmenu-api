@@ -28,14 +28,7 @@ describe("Menu bootstrap (e2e)", () => {
         send: jest.fn().mockReturnValue(
           of({
             categories: [],
-            deals: [],
-            defaultModifierGroupIds: [],
-            drinkAddOns: [],
-            foodItems: [],
             heroSlides: [],
-            hotCombos: [],
-            modifierGroups: [],
-            modifierLabelTranslations: [],
           }),
         ),
       })
@@ -58,14 +51,7 @@ describe("Menu bootstrap (e2e)", () => {
         expect(body).toEqual({
           data: {
             categories: [],
-            deals: [],
-            defaultModifierGroupIds: [],
-            drinkAddOns: [],
-            foodItems: [],
             heroSlides: [],
-            hotCombos: [],
-            modifierGroups: [],
-            modifierLabelTranslations: [],
           },
           message: "Request successful",
           path: "/api/v1/menu/bootstrap",

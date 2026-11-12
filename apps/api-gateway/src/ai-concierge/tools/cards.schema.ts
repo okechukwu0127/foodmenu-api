@@ -52,9 +52,23 @@ const extra = z
     unitLabel: z.string().nullable(),
   })
   .strict();
+export const foodCardKinds = ["food", "deal", "combo"] as const;
+export type FoodCardKind = (typeof foodCardKinds)[number];
+// A deal or hot combo shown as its linked (bundle) food. `id` is the deal or
+// combo ID; `label` is the deal's delivery label ("Delivery only") or the
+// combo's category label ("Pizza combo").
+const offerSchema = z
+  .object({
+    id: z.string(),
+    label: z.string().nullable(),
+  })
+  .strict();
 export const foodCardSchema = z
   .object({
     id: z.string(),
+    // Badge for the card. Defaults keep older saved cards valid.
+    kind: z.enum(foodCardKinds).default("food"),
+    offer: offerSchema.nullable().default(null),
     categoryId: z.string().nullable().default(null),
     name: z.string().nullable(),
     // Optional for older saved cards; every new recommendation supplies it.

@@ -82,6 +82,49 @@
           "en": "Surprise me with a meal based on my dining profile."
         },
         "icon": "sparkles"
+      },
+      {
+        "id": "todays-deals",
+        "label": {
+          "en": "Today's deals"
+        },
+        "prompt": {
+          "en": "What deals do you have today?"
+        },
+        "icon": "star",
+        "searchScope": "deal"
+      },
+      {
+        "id": "hot-combos",
+        "label": {
+          "en": "Hot combos"
+        },
+        "prompt": {
+          "en": "Show me your hot combos."
+        },
+        "icon": "flame",
+        "searchScope": "combo"
+      },
+      {
+        "id": "pizza-offers",
+        "label": {
+          "en": "Pizza offers"
+        },
+        "prompt": {
+          "en": "What pizza deals do you have?"
+        },
+        "icon": "pizza",
+        "searchScope": "deal"
+      },
+      {
+        "id": "group-deals",
+        "label": {
+          "en": "Deals for a group"
+        },
+        "prompt": {
+          "en": "Show me deals and combos that can feed a family or group."
+        },
+        "icon": "home"
       }
     ]
   },

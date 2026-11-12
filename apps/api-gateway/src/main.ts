@@ -12,6 +12,7 @@ import {
 } from "@app/common";
 import { mountProfilePhotoAssets } from "./auth/profile-photo-assets";
 import { AppModule } from "./app.module";
+import { createCompressionMiddleware } from "./compression";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
@@ -23,7 +24,8 @@ async function bootstrap() {
   const proxyHops = Number(configService.get<string>("TRUST_PROXY_HOPS", "0"));
   if (!Number.isInteger(proxyHops) || proxyHops < 0 || proxyHops > 5)
     throw new Error("TRUST_PROXY_HOPS must be an integer between 0 and 5");
-  if (proxyHops > 0) app.getHttpAdapter().getInstance().set("trust proxy", proxyHops);
+  if (proxyHops > 0)
+    app.getHttpAdapter().getInstance().set("trust proxy", proxyHops);
 
   app.use(
     createRequestLoggingMiddleware({
@@ -31,6 +33,8 @@ async function bootstrap() {
       body: configService.get<boolean>("HTTP_LOG_BODY", false),
     }),
   );
+  // Before routes and static assets so every eligible response is gzipped.
+  app.use(createCompressionMiddleware());
   app.use("/api/v1/webhooks/stripe", express.raw({ type: "application/json" }));
   app.use(
     "/assets",

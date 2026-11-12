@@ -5,6 +5,7 @@ import { MenuCatalogService } from "./menu-catalog.service";
 
 describe("MenuCatalogService", () => {
   const prisma = {
+    $queryRaw: jest.fn(),
     category: { findMany: jest.fn() },
     deal: { findMany: jest.fn() },
     defaultModifierGroup: { findMany: jest.fn() },
@@ -95,7 +96,7 @@ describe("MenuCatalogService", () => {
     ]);
   });
 
-  it("returns a complete bootstrap payload", async () => {
+  it("returns only essential bootstrap data without querying catalog collections", async () => {
     prisma.heroSlide.findMany.mockResolvedValue([]);
     prisma.category.findMany.mockResolvedValue([]);
     prisma.deal.findMany.mockResolvedValue([]);
@@ -108,20 +109,26 @@ describe("MenuCatalogService", () => {
 
     await expect(service.getBootstrap()).resolves.toEqual({
       categories: [],
-      deals: [],
-      defaultModifierGroupIds: [],
-      drinkAddOns: [],
-      foodItems: [],
       heroSlides: [],
-      hotCombos: [],
-      modifierGroups: [],
-      modifierLabelTranslations: [],
     });
-    expect(prisma.foodItem.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { isActive: true, deals: { none: {} }, hotCombos: { none: {} } },
-      }),
-    );
+    for (const model of [
+      prisma.foodItem,
+      prisma.deal,
+      prisma.hotCombo,
+      prisma.drinkAddOn,
+      prisma.modifierGroup,
+      prisma.modifierLabelTranslation,
+      prisma.defaultModifierGroup,
+    ]) {
+      expect(model.findMany).not.toHaveBeenCalled();
+    }
+  });
+
+  it("escapes LIKE wildcards in search terms", async () => {
+    prisma.$queryRaw.mockResolvedValue([]);
+    prisma.foodItem.findMany.mockResolvedValue([]);
+    await service.getFoods({ limit: 20, page: 1, search: "50%_off" });
+    expect(prisma.$queryRaw.mock.calls[0].slice(1)).toContain("%50\\%\\_off%");
   });
 
   it("applies food list filters and returns pagination cursor", async () => {
@@ -130,6 +137,10 @@ describe("MenuCatalogService", () => {
       createFood("double-stack-burger"),
     ]);
 
+    prisma.$queryRaw.mockResolvedValue([
+      { id: "classic-cheeseburger" },
+      { id: "double-stack-burger" },
+    ]);
     const result = await service.getFoods({
       categoryId: "burgers",
       isPopular: true,
@@ -138,10 +149,17 @@ describe("MenuCatalogService", () => {
       search: "burger",
     });
 
+    // The widened search (tags, translations, option names) runs as SQL and
+    // narrows the Prisma query by ID; the pattern is passed as a bound value.
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.$queryRaw.mock.calls[0].slice(1)).toContain("%burger%");
     expect(prisma.foodItem.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         take: 2,
         where: expect.objectContaining({
+          AND: [
+            { id: { in: ["classic-cheeseburger", "double-stack-burger"] } },
+          ],
           categoryId: "burgers",
           isActive: true,
           isPopular: true,
@@ -150,7 +168,7 @@ describe("MenuCatalogService", () => {
         }),
       }),
     );
-    expect(result.nextCursor).toBe("double-stack-burger");
+    expect(result.nextCursor).toBe("classic-cheeseburger");
     expect(result.items).toHaveLength(1);
   });
 
@@ -165,8 +183,12 @@ describe("MenuCatalogService", () => {
     ]);
 
     const details = await service.getFoodById(food.id);
-    const [deal] = await service.getDeals();
-    const [combo] = await service.getHotCombos();
+    const {
+      items: [deal],
+    } = await service.getDeals();
+    const {
+      items: [combo],
+    } = await service.getHotCombos();
 
     expect(deal.foodItem).toEqual(details);
     expect(combo.foodItem).toEqual(details);
@@ -200,14 +222,176 @@ describe("MenuCatalogService", () => {
       { id: "legacy-combo", foodItem: null, price: null },
     ]);
 
-    expect((await service.getDeals())[0].foodItem).toBeNull();
-    expect((await service.getHotCombos())[0].foodItem).toBeNull();
+    expect((await service.getDeals()).items[0].foodItem).toBeNull();
+    expect((await service.getHotCombos()).items[0].foodItem).toBeNull();
   });
 
   it("rejects food details when the food is missing or inactive", async () => {
     prisma.foodItem.findFirst.mockResolvedValue(null);
     await expect(service.getFoodById("missing")).rejects.toThrow();
   });
+
+  it("omits hidden fields from both database selection and the response", async () => {
+    const { modifierGroups, fulfillmentOptions, ...card } = createFood("card");
+    prisma.foodItem.findMany.mockResolvedValue([card]);
+    const result = await service.getFoods({
+      page: 1,
+      limit: 20,
+      id: "card",
+      hideFulfillmentOptions: true,
+      hideModifierGroups: true,
+      hideSideOptions: true,
+      hideSizeOptions: true,
+      hideAppetizerOptions: true,
+      hideImages: true,
+    });
+    expect(prisma.foodItem.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ AND: [{ id: "card" }] }),
+        select: expect.objectContaining({
+          fulfillmentOptions: false,
+          modifierGroups: false,
+          sideOptions: false,
+          sizeOptions: false,
+          appetizerOptions: false,
+          images: expect.objectContaining({ select: { url: true } }),
+        }),
+      }),
+    );
+    expect(result).toMatchObject({
+      nextCursor: null,
+      hasNextPage: false,
+      limit: 20,
+    });
+    expect(result.items[0]).toMatchObject({ id: "card", price: 12.99 });
+    for (const field of [
+      "fulfillmentOptions",
+      "modifierGroups",
+      "modifierGroupIds",
+      "sideOptions",
+      "sizeOptions",
+      "appetizerOptions",
+      "images",
+    ])
+      expect(result.items[0]).not.toHaveProperty(field);
+  });
+
+  it("allows individual projections without hiding other food details", async () => {
+    prisma.foodItem.findMany.mockResolvedValue([createFood("card")]);
+    const result = await service.getFoods({
+      page: 1,
+      limit: 20,
+      hideSizeOptions: true,
+    });
+    expect(result.items[0]).not.toHaveProperty("sizeOptions");
+    expect(result.items[0].modifierGroups).toHaveLength(1);
+    expect(result.items[0].fulfillmentOptions).toHaveLength(2);
+  });
+
+  it("uses the last visible food as cursor so consecutive pages do not skip rows", async () => {
+    const rows = [createFood("a"), createFood("b"), createFood("c")];
+    prisma.foodItem.findMany.mockImplementation(({ cursor, skip, take }) => {
+      const start = cursor
+        ? rows.findIndex((r) => r.slug === cursor.slug) + skip
+        : skip;
+      return Promise.resolve(rows.slice(start, start + take));
+    });
+    const first = await service.getFoods({ page: 1, limit: 2 });
+    const second = await service.getFoods({
+      page: 1,
+      limit: 2,
+      cursor: first.nextCursor!,
+    });
+    expect([...first.items, ...second.items].map((f) => f.id)).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
+    expect(second.nextCursor).toBeNull();
+    expect(second.hasNextPage).toBe(false);
+  });
+
+  it.each(["getDeals", "getHotCombos"] as const)(
+    "%s paginates promotions, filters linked foods and hides linked details",
+    async (method) => {
+      const model = method === "getDeals" ? prisma.deal : prisma.hotCombo;
+      model.findMany.mockResolvedValue(
+        ["a", "b", "c"].map((id) => ({
+          id,
+          foodItem: createFood(id),
+          price: 1000,
+        })),
+      );
+      const result = await service[method]({
+        page: 2,
+        limit: 2,
+        foodId: "food",
+        categoryId: "burgers",
+        isPopular: true,
+        hideModifierGroups: true,
+      });
+      expect(result.items.map((r) => r.id)).toEqual(["a", "b"]);
+      expect(result.nextCursor).toBe("b");
+      expect(result.hasNextPage).toBe(true);
+      expect(result.items[0].foodItem).not.toHaveProperty("modifierGroups");
+      expect(result.items[0].foodItem).not.toHaveProperty("modifierGroupIds");
+      expect(model.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 3,
+          skip: 2,
+          orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+          where: expect.objectContaining({
+            foodItemId: "food",
+            foodItem: { is: { categoryId: "burgers", isPopular: true } },
+          }),
+          select: expect.objectContaining({
+            foodItem: {
+              select: expect.objectContaining({ modifierGroups: false }),
+            },
+          }),
+        }),
+      );
+      model.findMany.mockResolvedValue([]);
+      const last = await service[method]({
+        page: 1,
+        limit: 2,
+        cursor: result.nextCursor!,
+      });
+      expect(model.findMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({ cursor: { id: "b" }, skip: 1 }),
+      );
+      expect(last).toMatchObject({
+        items: [],
+        nextCursor: null,
+        hasNextPage: false,
+      });
+    },
+  );
+
+  it.each(["getDeals", "getHotCombos"] as const)(
+    "%s filters by promotion ID and searches title or linked food",
+    async (method) => {
+      const model = method === "getDeals" ? prisma.deal : prisma.hotCombo;
+      model.findMany.mockResolvedValue([]);
+      await service[method]({
+        page: 1,
+        limit: 20,
+        id: "promotion-id",
+        search: "burger",
+      });
+      expect(model.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: "promotion-id",
+            OR: expect.arrayContaining([
+              { id: "burger" },
+              { title: { contains: "burger", mode: "insensitive" } },
+            ]),
+          }),
+        }),
+      );
+    },
+  );
 
   const createFood = (slug: string) => ({
     calories: 650,
