@@ -156,6 +156,7 @@ curl 'http://localhost:4000/api/v1/ai/config?locale=en'
 - Swagger UI: <http://localhost:4000/api/docs>
 - OpenAPI JSON: <http://localhost:4000/api/docs-json>
 - All application HTTP endpoints use `/api/v1` once.
+- Menu startup and paginated foods/deals/combos: [API contract and migration notes](docs/menu-pagination.md). Bootstrap now contains categories and banners only.
 
 The health endpoint checks gateway responsiveness, not the readiness of every dependency. Menu/configuration requests exercise additional dependencies. A missing Gemini key blocks chat generation, not public configuration retrieval.
 

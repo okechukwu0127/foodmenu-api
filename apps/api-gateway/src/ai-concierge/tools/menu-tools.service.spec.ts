@@ -1,10 +1,13 @@
 import { of, throwError } from "rxjs";
 import { ClientProxy } from "@nestjs/microservices";
 import { readFileSync } from "fs";
-import { ConciergeMenuAdapter } from "../adapters/menu.adapter";
+import {
+  ConciergeMenuAdapter,
+  MAX_AI_FOOD_RESULTS,
+} from "../adapters/menu.adapter";
 import { configSchema } from "../config/config.schema";
-import { MenuToolsService } from "./menu-tools.service";
-import { cardSchemas } from "./cards.schema";
+import { MenuToolsService, scopeTools } from "./menu-tools.service";
+import { cardSchemas, foodCardSchema } from "./cards.schema";
 import { EffectiveContext } from "../preferences/effective-preferences.service";
 const config = {
   ...configSchema.parse(
@@ -44,6 +47,201 @@ describe("Concierge menu tools and structured cards", () => {
   const adapter = new ConciergeMenuAdapter({ send } as unknown as ClientProxy);
   const service = new MenuToolsService(adapter);
   beforeEach(() => send.mockReset());
+  it("searches with card projections, accepts image URL lists, and caps results at 6", async () => {
+    // Card projection: no images objects, no modifier groups.
+    const card = (id: string, price: number) => ({
+      id,
+      name: { en: `Dish ${id}` },
+      description: { en: "Restaurant description" },
+      price,
+      currency: "GBP",
+      isFoodAvailable: true,
+      image: [`https://img.example.com/${id}.jpg`],
+      dietaryInfo: null,
+    });
+    send.mockReturnValue(
+      of({
+        items: Array.from({ length: 10 }, (_, i) => card(`f${i}`, 10 - i)),
+        nextCursor: null,
+      }),
+    );
+    const result = await adapter.search(
+      undefined,
+      { ...config, chatLimits: { ...config.chatLimits, toolResults: 20 } },
+      context,
+      "en",
+    );
+    expect(send).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        hideAppetizerOptions: true,
+        hideFulfillmentOptions: true,
+        hideImages: true,
+        hideModifierGroups: true,
+        hideSideOptions: true,
+        hideSizeOptions: true,
+      }),
+    );
+    expect(MAX_AI_FOOD_RESULTS).toBe(6);
+    expect(result.foods).toHaveLength(6);
+    expect(result.foods[0].images).toEqual(["https://img.example.com/f9.jpg"]);
+  });
+  it("returns deals and hot combos as badged food cards", async () => {
+    const bundle = (id: string, extra: object = {}) => ({
+      ...food,
+      id,
+      name: { en: id },
+      image: [`https://img.example.com/${id}.jpg`],
+      images: undefined,
+      ...extra,
+    });
+    send.mockImplementation((pattern) =>
+      of(
+        pattern.includes("Deals")
+          ? {
+              items: [
+                {
+                  id: "deal-1",
+                  imageUrl: "https://img.example.com/deal-1-banner.jpg",
+                  offerDelivery: { en: "Delivery only" },
+                  foodItem: bundle("twin-deal"),
+                },
+                // No linked food: cannot be customised, so it is skipped.
+                { id: "deal-2", foodItem: null },
+                ...Array.from({ length: 8 }, (_, i) => ({
+                  id: `deal-x${i}`,
+                  foodItem: bundle(`deal-food-${i}`),
+                })),
+              ],
+              nextCursor: null,
+            }
+          : {
+              items: [
+                {
+                  id: "combo-1",
+                  categoryLabel: { en: "Pizza combo" },
+                  foodItem: bundle("meal-for-1"),
+                },
+              ],
+              nextCursor: null,
+            },
+      ),
+    );
+    const deals = await adapter.offers(
+      undefined,
+      "deal",
+      config,
+      context,
+      "en",
+    );
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledWith(
+      expect.stringContaining("Deals"),
+      expect.objectContaining({ hideModifierGroups: true, hideImages: true }),
+    );
+    expect(deals.foods).toHaveLength(6);
+    expect(deals.foods[0]).toMatchObject({
+      id: "twin-deal",
+      kind: "deal",
+      offer: { id: "deal-1", label: "Delivery only" },
+      images: [
+        "https://img.example.com/deal-1-banner.jpg",
+        "https://img.example.com/twin-deal.jpg",
+      ],
+      customisationStatus: "details-required",
+    });
+    expect(cardSchemas["data-food-recommendations"].parse(deals)).toBeTruthy();
+
+    send.mockClear();
+    const combos = await adapter.offers(
+      undefined,
+      "combo",
+      config,
+      context,
+      "en",
+    );
+    expect(send).toHaveBeenCalledWith(
+      expect.stringContaining("Combo"),
+      expect.anything(),
+    );
+    expect(combos.foods).toEqual([
+      expect.objectContaining({
+        id: "meal-for-1",
+        kind: "combo",
+        offer: { id: "combo-1", label: "Pizza combo" },
+      }),
+    ]);
+  });
+  it("keeps older saved cards valid with a food badge", () => {
+    const saved = foodCardSchema.parse({
+      id: "old",
+      name: "Old card",
+      description: null,
+      price: { amountMinor: 100, currency: "GBP" },
+      available: true,
+      images: [],
+      dietaryInfo: null,
+      informationStatus: "unknown",
+      modifierGroups: [],
+      sizes: null,
+      extras: null,
+    });
+    expect(saved).toMatchObject({ kind: "food", offer: null });
+  });
+  it("limits tools to the chat input's search scope", async () => {
+    send.mockReturnValue(of({ items: [], nextCursor: null }));
+    const tools = service.create(
+      config,
+      context,
+      "en",
+      jest.fn(),
+      new AbortController().signal,
+    );
+    expect(Object.keys(scopeTools(tools, "all")).sort()).toEqual([
+      "getFoodDetails",
+      "getRecommendations",
+      "searchMenu",
+      "searchOffers",
+    ]);
+    expect(Object.keys(scopeTools(tools, "food")).sort()).toEqual([
+      "getFoodDetails",
+      "getRecommendations",
+      "searchMenu",
+    ]);
+    const combo = scopeTools(tools, "combo");
+    expect(Object.keys(combo).sort()).toEqual([
+      "getFoodDetails",
+      "searchOffers",
+    ]);
+    // The model cannot widen a combo-only search to deals.
+    await combo.searchOffers!.execute!(
+      { showCard: false, kind: "deal" },
+      {} as never,
+    );
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][0]).toContain("Combo");
+  });
+  it("ranks foods whose name matches the query above option or description matches", async () => {
+    send.mockReturnValue(
+      of({
+        items: [
+          // Cheaper, but only matched through an option (e.g. a naan bread).
+          { ...food, id: "doner", name: { en: "Lamb Doner" }, price: 6 },
+          {
+            ...food,
+            id: "desc",
+            name: { en: "Mix Special" },
+            description: { en: "Served with garlic naan" },
+            price: 7,
+          },
+          { ...food, id: "naan", name: { en: "Garlic Naan" }, price: 9 },
+        ],
+        nextCursor: null,
+      }),
+    );
+    const result = await adapter.search("naan", config, context, "en");
+    expect(result.foods.map((f) => f.id)).toEqual(["naan", "desc", "doner"]);
+  });
   it("builds validated detail and recommendation parts exclusively from menu RPC results", async () => {
     send.mockImplementation((pattern) =>
       of(

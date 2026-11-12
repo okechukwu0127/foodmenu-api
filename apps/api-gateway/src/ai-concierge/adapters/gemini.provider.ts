@@ -1,7 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { ModelMessage, stepCountIs, streamText } from "ai";
+import {
+  ModelMessage,
+  ToolChoiceViolationError,
+  stepCountIs,
+  streamText,
+} from "ai";
 import { fail } from "../persistence/contracts";
 import { MenuToolsService } from "../tools/menu-tools.service";
 import { serverErrorDetails, writeStructuredLog } from "@app/common";
@@ -24,7 +29,8 @@ export class GeminiConciergeProvider {
   stream(options: {
     system: string;
     messages: ModelMessage[];
-    tools: ReturnType<MenuToolsService["create"]>;
+    // Partial: the search toggle (scopeTools) or disabled recommendations omit tools.
+    tools: Partial<ReturnType<MenuToolsService["create"]>>;
     signal: AbortSignal;
     maxTokens: number;
     steps: number;
@@ -40,6 +46,16 @@ export class GeminiConciergeProvider {
     const result = streamText({
       model: google(model),
       onError: ({ error }) => {
+        // Handled below: the last step forbids tools, but Gemini sometimes
+        // still asks for one. The tool results so far are kept.
+        if (ToolChoiceViolationError.isInstance(error)) {
+          writeStructuredLog("info", "GeminiConciergeProvider", {
+            event: "ai_tool_budget_exhausted",
+            model,
+            steps: options.steps,
+          });
+          return;
+        }
         const status =
           error && typeof error === "object" && "statusCode" in error
             ? error.statusCode
@@ -82,7 +98,13 @@ export class GeminiConciergeProvider {
     });
     async function* events(): AsyncGenerator<TextEvent> {
       for await (const part of result.fullStream) {
-        if (part.type === "error") throw new Error("AI_PROVIDER_UNAVAILABLE");
+        if (part.type === "error") {
+          // The model used every tool step and tried to search again. End the
+          // reply normally so the cards already shown are kept; the chat
+          // service adds a short closing line when no text was written.
+          if (ToolChoiceViolationError.isInstance(part.error)) return;
+          throw new Error("AI_PROVIDER_UNAVAILABLE");
+        }
         if (part.type === "abort") throw new Error("AI_CANCELLED");
         if (part.type === "text-start" || part.type === "text-end")
           yield { type: part.type, id: part.id };

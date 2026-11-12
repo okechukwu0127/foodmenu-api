@@ -1,3 +1,4 @@
+import { searchScopes } from "../config/config.schema";
 import { z } from "zod";
 import { answersSchema } from "../config/config.schema";
 import { uuid } from "../persistence/contracts";
@@ -47,6 +48,8 @@ export const chatBody = z
     clientMessageId: uuid,
     text: z.string().trim().min(1).max(10000),
     locale: z.string().max(20),
+    // The chat input's search toggle. Omitted (older apps) means "all".
+    searchScope: z.enum(searchScopes).optional(),
   })
   .strict();
 

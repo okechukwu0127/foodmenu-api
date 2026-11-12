@@ -62,6 +62,51 @@ describe("Gemini direct-provider adapter", () => {
       );
     },
   );
+  it("keeps the reply when the model asks for a tool after the tool steps run out", async () => {
+    const callSearch = {
+      candidates: [
+        {
+          content: {
+            role: "model",
+            parts: [{ functionCall: { name: "searchMenu", args: { query: "for two" } } }],
+          },
+          finishReason: "STOP",
+          index: 0,
+        },
+      ],
+    };
+    // First step searches; the last step (tools forbidden) asks to search again.
+    const fetch = jest
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async () =>
+        new Response(`data: ${JSON.stringify(callSearch)}\n\n`, {
+          headers: { "content-type": "text/event-stream" },
+        }),
+      );
+    const execute = jest.fn(async () => ({ foods: [] }));
+    const provider = new GeminiConciergeProvider(
+      new ConfigService({ GOOGLE_GENERATIVE_AI_API_KEY: "test-only-key" }),
+    );
+    const result = provider.stream({
+      system: "Private restaurant instructions",
+      messages: [{ role: "user", content: "A meal for two" }],
+      tools: {
+        searchMenu: tool({
+          description: "search",
+          inputSchema: z.object({ query: z.string() }),
+          execute,
+        }),
+      } as unknown as ReturnType<MenuToolsService["create"]>,
+      signal: new AbortController().signal,
+      maxTokens: 100,
+      steps: 2,
+    });
+    const events = [];
+    for await (const event of result.events) events.push(event);
+    expect(events).toEqual([]);
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
   it("fails closed before generation without a configured API key", () => {
     expect(() =>
       new GeminiConciergeProvider(new ConfigService()).assertConfigured(),

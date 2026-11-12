@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+/** What the customer's search toggle in the chat input is set to. */
+export const searchScopes = ["all", "food", "deal", "combo"] as const;
+export type SearchScope = (typeof searchScopes)[number];
+
 const id = z.string().regex(/^[a-z][a-z0-9_-]{0,63}$/);
 const text = z
   .string()
@@ -93,6 +97,8 @@ export const configSchema = z
                 label: labels,
                 prompt: labels,
                 icon: id.optional(),
+                // Switches the chat input's search toggle when tapped.
+                searchScope: z.enum(searchScopes).optional(),
               })
               .strict(),
           )

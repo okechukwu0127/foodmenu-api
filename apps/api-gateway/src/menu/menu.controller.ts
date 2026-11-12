@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Header,
-  Inject,
-  Param,
-  Query,
-} from "@nestjs/common";
+import { Controller, Get, Header, Inject, Param, Query } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import {
   ApiOperation,
@@ -18,14 +11,15 @@ import { catchError, firstValueFrom, throwError } from "rxjs";
 import { MENU_PATTERNS } from "@app/common";
 import {
   CategoryResponseDto,
-  DealResponseDto,
   DrinkAddOnResponseDto,
   FoodDetailsResponseDto,
   FoodIdParamDto,
   FoodListQueryDto,
+  PromotionListQueryDto,
+  DealListResponseDto,
+  HotComboListResponseDto,
   FoodListResponseDto,
   HeroSlideResponseDto,
-  HotComboResponseDto,
   MenuBootstrapResponseDto,
   ModifierGroupResponseDto,
 } from "@app/dto";
@@ -41,7 +35,9 @@ export class MenuController {
 
   @Get("bootstrap")
   @Header("Cache-Control", "public, max-age=60")
-  @ApiOperation({ summary: "Load the full mobile menu bootstrap payload" })
+  @ApiOperation({
+    summary: "Load categories and banners for app startup",
+  })
   @ApiResponse({ status: 200, type: MenuBootstrapResponseDto })
   getBootstrap() {
     return this.send(MENU_PATTERNS.GET_BOOTSTRAP, {});
@@ -80,10 +76,12 @@ export class MenuController {
 
   @Get("deals")
   @Header("Cache-Control", "public, max-age=120")
-  @ApiOperation({ summary: "List active menu deals" })
-  @ApiResponse({ status: 200, type: [DealResponseDto] })
-  getDeals() {
-    return this.send(MENU_PATTERNS.GET_DEALS, {});
+  @ApiOperation({
+    summary: "List active menu deals with filtering and pagination",
+  })
+  @ApiResponse({ status: 200, type: DealListResponseDto })
+  getDeals(@Query() query: PromotionListQueryDto) {
+    return this.send(MENU_PATTERNS.GET_DEALS, query);
   }
 
   @Get("hero-slides")
@@ -96,10 +94,13 @@ export class MenuController {
 
   @Get("hot-combos")
   @Header("Cache-Control", "public, max-age=120")
-  @ApiOperation({ summary: "List active hot combos with linked food details" })
-  @ApiResponse({ status: 200, type: [HotComboResponseDto] })
-  getHotCombos() {
-    return this.send(MENU_PATTERNS.GET_HOT_COMBOS, {});
+  @ApiOperation({
+    summary:
+      "List active hot combos with filtering, pagination and optional linked food details",
+  })
+  @ApiResponse({ status: 200, type: HotComboListResponseDto })
+  getHotCombos(@Query() query: PromotionListQueryDto) {
+    return this.send(MENU_PATTERNS.GET_HOT_COMBOS, query);
   }
 
   @Get("drink-add-ons")
@@ -128,19 +129,21 @@ export class MenuController {
 
   private send<TPayload>(pattern: string, payload: TPayload) {
     return firstValueFrom(
-      this.menuClient.send(pattern, payload).pipe(
-        catchError((error: { code?: string; message?: string }) =>
-          throwError(
-            () =>
-              new AppError(
-                error.code ?? "MENU_SERVICE_ERROR",
-                error.message ?? "Menu service request failed",
-                502,
-                error,
-              ),
+      this.menuClient
+        .send(pattern, payload)
+        .pipe(
+          catchError((error: { code?: string; message?: string }) =>
+            throwError(
+              () =>
+                new AppError(
+                  error.code ?? "MENU_SERVICE_ERROR",
+                  error.message ?? "Menu service request failed",
+                  502,
+                  error,
+                ),
+            ),
           ),
         ),
-      ),
     );
   }
 }

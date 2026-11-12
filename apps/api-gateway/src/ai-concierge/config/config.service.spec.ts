@@ -213,7 +213,12 @@ describe("Stored concierge configuration and restrictions", () => {
       aiPreferenceProfile: { findFirst: async () => null },
     };
 
-    const context = await effective.build(tx as never, config(), "customer", undefined);
+    const context = await effective.build(
+      tx as never,
+      config(),
+      "customer",
+      undefined,
+    );
 
     expect(context).toMatchObject({
       preferenceProfileId: null,

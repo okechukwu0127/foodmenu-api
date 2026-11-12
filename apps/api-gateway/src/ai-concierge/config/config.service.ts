@@ -241,6 +241,9 @@ export class ConciergeConfigService {
                 label: label(starter.label),
                 prompt: label(starter.prompt),
                 ...(starter.icon ? { icon: starter.icon } : {}),
+                ...(starter.searchScope
+                  ? { searchScope: starter.searchScope }
+                  : {}),
               })),
             }
           : {}),
