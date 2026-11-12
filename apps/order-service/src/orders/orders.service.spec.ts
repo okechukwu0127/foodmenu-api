@@ -132,6 +132,27 @@ describe("Checkout customer ownership", () => {
     expect(prisma.order.create).not.toHaveBeenCalled();
   });
 
+  it("refuses a delivery order without a contact phone before payment", async () => {
+    prisma.customer.findUnique.mockResolvedValue({ ...customer, phone: null });
+    const delivery = {
+      amount: 2500,
+      currency: "gbp",
+      customerId: customer.id,
+      order: { deliveryAddress: { line1: "Broad La", postcode: "CV5 7FF" } },
+    };
+    await expect(service.createPendingOrder(delivery)).rejects.toMatchObject({
+      error: expect.objectContaining({ code: "PHONE_REQUIRED", statusCode: 422 }),
+    });
+    expect(prisma.order.create).not.toHaveBeenCalled();
+    // Collection orders and a phone given at checkout are allowed.
+    await expect(
+      service.createPendingOrder({ ...delivery, metadata: { fulfilment: "pickup" } }),
+    ).resolves.toBeDefined();
+    await expect(
+      service.createPendingOrder({ ...delivery, customer: { phone: "+447700900123" } }),
+    ).resolves.toBeDefined();
+  });
+
   it("does not reuse another customer's checkout order", async () => {
     prisma.order.findFirst.mockResolvedValue({
       id: "other-order",

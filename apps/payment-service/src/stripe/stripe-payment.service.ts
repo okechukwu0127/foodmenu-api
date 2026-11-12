@@ -720,6 +720,19 @@ export class StripePaymentService {
 
   private toRpcException(error: unknown, code: string) {
     if (error instanceof RpcException) return error;
+    // Client errors from the order service (e.g. PHONE_REQUIRED) arrive over TCP
+    // as plain objects; pass them through so the app can show the reason.
+    if (typeof error === "object" && error !== null) {
+      const { code: clientCode, message, statusCode } = error as Record<string, unknown>;
+      if (
+        typeof clientCode === "string" &&
+        typeof message === "string" &&
+        typeof statusCode === "number" &&
+        statusCode >= 400 &&
+        statusCode < 500
+      )
+        return new RpcException({ code: clientCode, message, statusCode });
+    }
     const missingWebhookProof =
       code === "STRIPE_WEBHOOK_FAILED" &&
       error instanceof Error &&
