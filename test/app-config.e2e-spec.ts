@@ -75,6 +75,7 @@ suite("Public application config (HTTP + PostgreSQL)", () => {
             longitude: expect.any(Number),
           },
         },
+        legal: { terms: null, privacy: null },
         updatedAt: expect.any(String),
       },
     });

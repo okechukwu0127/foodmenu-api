@@ -50,6 +50,10 @@ export const envValidationSchema = Joi.object({
   API_GATEWAY_PORT: Joi.number().default(4000),
   DATABASE_URL: Joi.string().required(),
   FOODMENU_APP_URL: Joi.string().default("*"),
+  // Comma-separated extra CORS origins, e.g. the Liberq website: https://liberq.app,http://localhost:5173
+  WEBSITE_ORIGINS: Joi.string().allow("").default(""),
+  // Team inbox(es) that receive website demo, partner and beta sign-ups (comma-separated).
+  LEADS_NOTIFY_EMAIL: Joi.string().allow("").default(""),
   GOOGLE_ROUTES_API_KEY: Joi.string().allow("").optional(),
   NODE_ENV: Joi.string()
     .valid("development", "test", "production")
@@ -101,6 +105,7 @@ export const identityEnvValidationSchema = Joi.object(
       "SMTP_USER",
       "SMTP_PASSWORD",
       "SMTP_FROM",
+      "LEADS_NOTIFY_EMAIL",
       "PROFILE_PHOTO_STORAGE_DIR",
       "PUBLIC_ASSET_BASE_URL",
       "DATABASE_URL",

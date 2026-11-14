@@ -157,6 +157,38 @@ export class FoodListQueryDto {
   )
   @IsBoolean()
   hideImages?: boolean;
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      "Omit the food description (all languages). List cards don't show it; product details load it from /menu/foods/:id.",
+  })
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === "true" || value === true
+      ? true
+      : value === "false" || value === false
+        ? false
+        : value,
+  )
+  @IsBoolean()
+  hideDescription?: boolean;
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      "Return only the first (primary) image URL in `image` instead of the whole gallery.",
+  })
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === "true" || value === true
+      ? true
+      : value === "false" || value === false
+        ? false
+        : value,
+  )
+  @IsBoolean()
+  hideExtraImages?: boolean;
 }
 
 /** Same filters and projection controls; id/cursor refer to promotion IDs. */

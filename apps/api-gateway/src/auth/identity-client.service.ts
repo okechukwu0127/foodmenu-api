@@ -10,6 +10,10 @@ import { firstValueFrom, timeout } from "rxjs";
 import { AppError } from "@app/errors";
 import { IDENTITY_PATTERNS } from "@app/common";
 import {
+  BetaSignupDto,
+  BetaSignupResponseDto,
+  WebsiteLeadDto,
+  WebsiteLeadResponseDto,
   EmailVerificationRequired,
   ChangePasswordDto,
   EmailActivationResponse,
@@ -144,6 +148,14 @@ export class IdentityClientService {
       customerId,
       foodId,
     });
+  }
+
+  betaSignup(dto: BetaSignupDto) {
+    return this.send<BetaSignupResponseDto>(IDENTITY_PATTERNS.BETA_SIGNUP, dto);
+  }
+
+  demoRequest(dto: WebsiteLeadDto) {
+    return this.send<WebsiteLeadResponseDto>(IDENTITY_PATTERNS.DEMO_REQUEST, dto);
   }
 
   private async send<T>(pattern: string, payload: unknown): Promise<T> {

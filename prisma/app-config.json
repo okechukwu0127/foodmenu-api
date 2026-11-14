@@ -1,9 +1,9 @@
 {
-  "appName": "Eazy Eat",
-  "shortName": "Eazy Eat",
+  "appName": "Liberq Eat",
+  "shortName": "Liberq Eat",
   "defaultRestaurant": {
     "id": "c34d5c31-8878-4c62-85cd-241385c769c0",
-    "restaurantName": "Eazy Eat Main Office",
+    "restaurantName": "Liberq Eat Main Office",
     "address": {
       "formatted": "127 Humber Avenue, Coventry, CV1 2AB",
       "line1": "127 Humber Avenue",

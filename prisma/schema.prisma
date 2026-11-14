@@ -91,6 +91,18 @@ model AppConfiguration {
   updatedAt           DateTime   @updatedAt
 }
 
+/// Legal documents (terms, privacy) shipped to the apps inside GET /app/config.
+/// `blocks` is the structured body: see prisma/seed-data/legal-documents.seed.ts for the format.
+model LegalDocument {
+  id            String   @id @db.VarChar(32)
+  title         String   @db.VarChar(160)
+  version       String   @db.VarChar(32)
+  effectiveDate DateTime @db.Date
+  blocks        Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 model PaymentTransaction {
   id              String          @id @default(cuid())
   paymentIntentId String          @unique
@@ -624,6 +636,35 @@ model CustomerFavorite {
   @@id([customerId, foodId])
 }
 
+enum BetaPlatform {
+  IOS
+  ANDROID
+}
+
+enum BetaTesterStatus {
+  REQUESTED
+  INVITED
+  UNSUBSCRIBED
+}
+
+// Beta-testing sign-ups from the Liberq website. Owned by the identity service.
+// The email is the Apple ID (TestFlight) or Google account (Play testing) to invite.
+model BetaTester {
+  id           String           @id @default(cuid())
+  email        String           @db.VarChar(254)
+  platform     BetaPlatform
+  status       BetaTesterStatus @default(REQUESTED)
+  source       String           @default("website") @db.VarChar(64)
+  consentAt    DateTime
+  requestCount Int              @default(1)
+  invitedAt    DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([email, platform])
+  @@index([status, createdAt])
+}
+
 model EmailVerification {
   accountId   String      @id
   account     AuthAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
@@ -860,4 +901,37 @@ model PaymentCommerceEvent {
 
   @@unique([quoteId, observation])
   @@index([acknowledgedAt, createdAt])
+}
+
+// "Book a free demo" and "Become a partner" requests from the Liberq marketing website.
+enum LeadKind {
+  DEMO
+  PARTNER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  CLOSED
+}
+
+model WebsiteLead {
+  id         String     @id @default(cuid())
+  kind       LeadKind   @default(DEMO)
+  status     LeadStatus @default(NEW)
+  name       String     @db.VarChar(100)
+  /// Restaurant name (demo) or the area a partner covers (partner).
+  business   String     @db.VarChar(120)
+  email      String     @db.VarChar(254)
+  /// UK number normalised to +44…
+  phone      String     @db.VarChar(20)
+  source     String     @default("website") @db.VarChar(64)
+  consentAt  DateTime
+  /// When the team notification email was accepted by SMTP (null = not sent).
+  notifiedAt DateTime?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([kind, status, createdAt])
+  @@index([email])
 }

@@ -28,6 +28,8 @@ export type IdentitySession = {
 
 export * from "./address.dto";
 export * from "./favorite.dto";
+export * from "./beta-tester.dto";
+export * from "./website-lead.dto";
 
 export type EmailVerificationRequired = {
   requiresEmailVerification: true;

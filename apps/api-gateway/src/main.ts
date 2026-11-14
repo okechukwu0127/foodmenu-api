@@ -47,9 +47,20 @@ async function bootstrap() {
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: true, limit: "1mb" }));
   app.use(helmet());
+  // Extra browser origins allowed to call the API, e.g. the Liberq marketing website.
+  const websiteOrigins = configService
+    .get<string>("WEBSITE_ORIGINS", "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
   app.enableCors({
     exposedHeaders: ["ETag", "X-Request-Id", "X-Vercel-AI-UI-Message-Stream"],
-    origin: allowedOrigin === "*" ? true : allowedOrigin,
+    origin:
+      allowedOrigin === "*"
+        ? true
+        : websiteOrigins.length
+          ? [allowedOrigin, ...websiteOrigins]
+          : allowedOrigin,
   });
   app.setGlobalPrefix("api/v1");
   app.useGlobalPipes(createValidationPipe());

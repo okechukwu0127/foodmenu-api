@@ -1,0 +1,372 @@
+{
+  "id": "privacy",
+  "title": "Privacy Policy",
+  "version": "1.0",
+  "effectiveDate": "2026-11-14",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "This Privacy Policy explains how [COMPANY LEGAL NAME, e.g. Liberq Ltd] (**Liberq**, **we**, **us**, **our**) collects, uses and protects personal data when you visit our website, contact us, join our beta or partner programme, subscribe as a merchant, or order through an app powered by Liberq. It also explains your rights and how to exercise them."
+    },
+    {
+      "type": "paragraph",
+      "text": "We are committed to handling personal data lawfully, fairly and transparently, in line with the UK General Data Protection Regulation (**UK GDPR**), the Data Protection Act 2018 and the Privacy and Electronic Communications Regulations 2003 (**PECR**)."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "1. Who we are"
+    },
+    {
+      "type": "paragraph",
+      "text": "1.1 [COMPANY LEGAL NAME, e.g. Liberq Ltd] is a company registered in England and Wales under company number [COMPANY NUMBER], with its registered office at [REGISTERED OFFICE ADDRESS]. We are registered with the Information Commissioner's Office (ICO) under registration number [ICO REGISTRATION NUMBER]."
+    },
+    {
+      "type": "paragraph",
+      "text": "1.2 For privacy questions or to exercise your rights, contact us at [hello@liberq.app](mailto:hello@liberq.app), by phone on +44 7909 865259, or by post at the address above, marked \"Data Protection\"."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "2. Our role: controller or processor"
+    },
+    {
+      "type": "paragraph",
+      "text": "2.1 **We are the controller** — meaning we decide how and why your data is used — for personal data about:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "visitors to our website;",
+        "people who book a demo, apply to our partner programme or join our beta;",
+        "merchants (restaurants and takeaways) and their staff who use our dashboard; and",
+        "partners in our partner programme."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "2.2 **We are a processor** for personal data about customers who order through a merchant's branded app or web ordering page. In that case the **merchant is the controller** and we process the data on its behalf and under its instructions. Please read the merchant's own privacy notice, and contact the merchant to exercise your rights. We will help the merchant respond."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "3. The data we collect"
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Website visitors"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Technical data such as your IP address, browser type, device and pages visited, collected by our hosting provider in server logs for security.",
+        "A small preference saved in your browser's local storage, recording that you have visited before so that the first background \"look\" is shown only once. We do not use advertising or analytics cookies."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Demo requests and partner applications"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Your name, restaurant name (or the area you cover as a partner), email address, UK phone number, the date and source of your request, and your consent to be contacted."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Beta testers"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Your Apple ID email (for TestFlight) or Google account email (for Google Play testing), the platform you chose, your consent, and how often you have asked to join."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Merchants and their staff"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Business and contact details, login details, billing and subscription information, menu and brand content, support communications, and records of how the dashboard is used."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Partners"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Your name and contact details, the merchants you introduce, bank details for paying your earnings, tax information where required, and records of the payments we make to you."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 3,
+      "text": "Customers ordering through a Merchant App (processed for the merchant)"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Account details (name, email, phone number), delivery addresses, order history and favourites, payment status (card details are handled by our payment provider and never stored by us), order tracking information, and messages or voice requests made to the AI Waiter, including any dietary preferences or allergies you choose to share."
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "4. How and why we use your data"
+    },
+    {
+      "type": "table",
+      "columns": [
+        "Purpose",
+        "Data used",
+        "Lawful basis (UK GDPR)"
+      ],
+      "rows": [
+        [
+          "Responding to your demo request or partner application and following up",
+          "Contact and enquiry details",
+          "Legitimate interests in responding to business enquiries; steps prior to entering a contract"
+        ],
+        [
+          "Inviting you to and running the beta programme",
+          "Beta sign-up details",
+          "Consent, which you can withdraw at any time"
+        ],
+        [
+          "Providing the Platform to merchants, billing and support",
+          "Merchant and staff data",
+          "Performance of a contract; legal obligation (tax and accounting records)"
+        ],
+        [
+          "Running the partner programme and paying earnings",
+          "Partner data",
+          "Performance of a contract; legal obligation"
+        ],
+        [
+          "Keeping our website and Platform secure and preventing fraud",
+          "Technical and usage data",
+          "Legitimate interests in protecting our services and users"
+        ],
+        [
+          "Improving our services",
+          "Aggregated or de-identified usage data",
+          "Legitimate interests in developing our products"
+        ],
+        [
+          "Sending service messages (such as invoices, security notices and changes to our terms)",
+          "Contact details",
+          "Performance of a contract; legal obligation"
+        ],
+        [
+          "Sending marketing emails about Liberq",
+          "Contact details",
+          "Consent, or our legitimate interests where the soft opt-in applies under PECR. You can opt out at any time"
+        ],
+        [
+          "Establishing, exercising or defending legal claims",
+          "Relevant records",
+          "Legitimate interests; legal obligation"
+        ]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "When we rely on legitimate interests, we have balanced our interests against your rights and freedoms. You can ask us for details of that assessment."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "5. The AI Waiter"
+    },
+    {
+      "type": "paragraph",
+      "text": "5.1 Merchant Apps include an AI Waiter that understands typed and spoken requests and suggests dishes from the merchant's menu. To do this, the text of your request (and, for voice requests, the audio needed to transcribe it) is sent to our AI model provider, Google, through its Gemini API, which generates the response."
+    },
+    {
+      "type": "paragraph",
+      "text": "5.2 Our AI provider processes this data on our behalf to provide the service. Under its terms for paid API services, it does not use this content to train its general models."
+    },
+    {
+      "type": "paragraph",
+      "text": "5.3 If you tell the AI Waiter about allergies, intolerances or dietary requirements, this may reveal information about your health or beliefs. We use it **only** to find suitable dishes for your order, and only because you have chosen to share it. Please share only what is needed."
+    },
+    {
+      "type": "paragraph",
+      "text": "5.4 The AI Waiter does not make decisions that have legal or similarly significant effects on you. Its suggestions can be wrong, so always check allergen information with the restaurant."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "6. Who we share data with"
+    },
+    {
+      "type": "paragraph",
+      "text": "We do not sell personal data. We share it only where necessary, with:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "**Merchants** — the restaurant you order from receives the details needed to prepare and deliver your order;",
+        "**Payment provider** — Stripe, which processes card payments as an independent controller under its own privacy policy;",
+        "**Delivery providers** — such as Stuart or Uber Direct, which receive the name, phone number and address needed to deliver an order;",
+        "**AI model provider** — Google (Gemini API), as described in section 5;",
+        "**App distribution** — Apple (TestFlight and the App Store) and Google (Google Play), for beta invitations and app publication;",
+        "**Infrastructure providers** — our hosting provider ([HOSTING PROVIDER]) and email delivery provider ([EMAIL DELIVERY PROVIDER]), which act as our processors;",
+        "**Professional advisers** — such as accountants, auditors and lawyers, under duties of confidentiality; and",
+        "**Authorities** — where we are required by law, or need to protect our rights, our users or the public."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "All our processors are bound by written contracts that require them to keep data secure and to use it only on our instructions."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "7. International transfers"
+    },
+    {
+      "type": "paragraph",
+      "text": "Some of our providers process data outside the UK, including in the United States and the European Economic Area. Where this happens, we make sure the transfer is protected by UK adequacy regulations (including the UK Extension to the EU–US Data Privacy Framework where the provider is certified) or by the ICO's International Data Transfer Agreement or Addendum, together with any additional safeguards needed."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "8. How long we keep data"
+    },
+    {
+      "type": "table",
+      "columns": [
+        "Data",
+        "How long we keep it"
+      ],
+      "rows": [
+        [
+          "Demo requests and partner applications that do not lead to a contract",
+          "24 months from our last contact with you"
+        ],
+        [
+          "Beta sign-ups",
+          "Until the beta programme ends or you withdraw consent, then up to 12 months"
+        ],
+        [
+          "Merchant and partner contract, billing and payment records",
+          "6 years after the end of the relationship, to meet tax and legal requirements"
+        ],
+        [
+          "Server security logs",
+          "Up to 90 days"
+        ],
+        [
+          "Customer data processed for merchants",
+          "As instructed by the merchant, and deleted or returned when the merchant's agreement ends"
+        ],
+        [
+          "AI Waiter conversations",
+          "[CONFIRM: e.g. up to 12 months, or until the customer deletes the conversation]"
+        ]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "When data is no longer needed, we securely delete or anonymise it."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "9. How we protect your data"
+    },
+    {
+      "type": "paragraph",
+      "text": "We use appropriate technical and organisational measures to protect personal data, including encryption in transit, access controls based on job role, password hashing, rate limiting and monitoring of our systems. No system is completely secure, but we work to protect your data and will notify you and the ICO of a personal data breach where the law requires."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "10. Your rights"
+    },
+    {
+      "type": "paragraph",
+      "text": "Under data protection law you have the right to:"
+    },
+    {
+      "type": "list",
+      "items": [
+        "**access** the personal data we hold about you;",
+        "**rectification** of inaccurate or incomplete data;",
+        "**erasure** of your data in certain circumstances;",
+        "**restriction** of processing in certain circumstances;",
+        "**object** to processing based on legitimate interests, and to object at any time to direct marketing;",
+        "**data portability**, to receive data you gave us in a reusable format; and",
+        "**withdraw consent** at any time, where we rely on consent. This does not affect processing already carried out."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "To exercise any of these rights, contact us using the details in section 1. We will respond within one month, which may be extended by up to two further months for complex requests. We may need to verify your identity first. There is normally no charge."
+    },
+    {
+      "type": "paragraph",
+      "text": "If your request relates to an order you placed with a restaurant, we will pass it to the restaurant (the controller) and help it respond."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "11. Complaints"
+    },
+    {
+      "type": "paragraph",
+      "text": "11.1 If you are unhappy with how we have handled your personal data, please tell us first so that we can put it right. You can complain by emailing [hello@liberq.app](mailto:hello@liberq.app) with the subject \"Data protection complaint\". We will acknowledge your complaint within 30 days, look into it without undue delay, and tell you the outcome."
+    },
+    {
+      "type": "paragraph",
+      "text": "11.2 You also have the right to complain to the Information Commissioner's Office: [ico.org.uk/make-a-complaint](https://ico.org.uk/make-a-complaint/), helpline 0303 123 1113."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "12. Children"
+    },
+    {
+      "type": "paragraph",
+      "text": "Our website and merchant services are intended for adults. Customers must be at least 13 to create an account in a Merchant App, and at least 18 to order alcohol or other age-restricted products. We do not knowingly collect personal data from children under 13. If you believe a child has given us personal data, please contact us and we will delete it."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "13. Marketing"
+    },
+    {
+      "type": "paragraph",
+      "text": "We will only send you marketing emails where you have agreed to receive them or where the law allows us to do so for similar services you have shown interest in. Every marketing email includes an unsubscribe link, and you can also opt out by contacting us. Merchants are responsible for any marketing they send their own customers."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "14. Changes to this policy"
+    },
+    {
+      "type": "paragraph",
+      "text": "We may update this Privacy Policy from time to time. The latest version will always be published on this page with its effective date. If we make significant changes, we will tell you by email or through our services where appropriate."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "15. Contact us"
+    },
+    {
+      "type": "paragraph",
+      "text": "[COMPANY LEGAL NAME, e.g. Liberq Ltd] · [REGISTERED OFFICE ADDRESS] · [hello@liberq.app](mailto:hello@liberq.app) · +44 7909 865259"
+    }
+  ]
+}

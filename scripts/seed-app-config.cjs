@@ -5,12 +5,20 @@ const { readFileSync } = require("node:fs");
 const {
   seedAppConfiguration,
 } = require("../prisma/seed-data/app-config.seed.ts");
+const {
+  seedLegalDocument,
+} = require("../prisma/seed-data/legal-documents.seed.ts");
 const db = new PrismaClient();
 (async () => {
   const input = JSON.parse(
     readFileSync(process.argv[2] || "prisma/app-config.json", "utf8"),
   );
   await seedAppConfiguration(db, input, true);
+  for (const doc of ["terms", "privacy"])
+    await seedLegalDocument(
+      db,
+      JSON.parse(readFileSync(`prisma/legal/${doc}.json`, "utf8")),
+    );
   console.log("Public application configuration published");
 })()
   .catch((error) => {

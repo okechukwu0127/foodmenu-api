@@ -12,6 +12,11 @@ import { AddressesService } from "./addresses/addresses.service";
 import { IdentityAddressesController } from "./addresses/addresses.controller";
 import { FavoritesService } from "./favorites/favorites.service";
 import { IdentityFavoritesController } from "./favorites/favorites.controller";
+import { BetaTestersService } from "./beta/beta-testers.service";
+import { IdentityBetaTestersController } from "./beta/beta-testers.controller";
+import { WebsiteLeadsService } from "./leads/website-leads.service";
+import { IdentityWebsiteLeadsController } from "./leads/website-leads.controller";
+import { LeadNotificationService } from "./email/lead-notification.service";
 
 import { EmailVerificationService } from "./email/email-verification.service";
 import { VerificationMailService } from "./email/verification-mail.service";
@@ -31,10 +36,15 @@ import { ProfilePhotoStorageService } from "./photos/profile-photo-storage.servi
     IdentityController,
     IdentityAddressesController,
     IdentityFavoritesController,
+    IdentityBetaTestersController,
+    IdentityWebsiteLeadsController,
   ],
   providers: [
     AddressesService,
     FavoritesService,
+    BetaTestersService,
+    WebsiteLeadsService,
+    LeadNotificationService,
     AuthService,
     ProfilePhotoStorageService,
     EmailVerificationService,

@@ -92,10 +92,17 @@ const foodSelect = {
 type FullFood = Prisma.FoodItemGetPayload<{ select: typeof foodSelect }>;
 type OptionalFoodFields =
   | "appetizerOptions"
+  | "description"
+  | "descriptionData"
   | "fulfillmentOptions"
   | "modifierGroups"
   | "sideOptions"
   | "sizeOptions";
+/** Fields a list projection (hide* flags) may drop from the mapped food. */
+type ListOptionalFields =
+  | Exclude<OptionalFoodFields, "descriptionData">
+  | "modifierGroupIds"
+  | "images";
 type SelectedFood = Omit<FullFood, OptionalFoodFields> &
   Partial<Pick<FullFood, OptionalFoodFields>>;
 
@@ -501,6 +508,9 @@ export class MenuCatalogService {
       sideOptions: !query.hideSideOptions,
       sizeOptions: !query.hideSizeOptions,
       appetizerOptions: !query.hideAppetizerOptions,
+      // Description text is skipped at the database too when cards don't need it.
+      description: !query.hideDescription,
+      descriptionData: !query.hideDescription,
       // Cards still need the URLs for `image`; skip alt text and sort order.
       images: (query.hideImages
         ? { orderBy: foodSelect.images.orderBy, select: { url: true } }
@@ -568,12 +578,12 @@ export class MenuCatalogService {
   private mapListFoodItem(foodItem: SelectedFood, query: FoodListQueryDto) {
     const result: Omit<
       ReturnType<MenuCatalogService["mapFoodItem"]>,
-      OptionalFoodFields | "modifierGroupIds" | "images"
+      ListOptionalFields
     > &
       Partial<
         Pick<
           ReturnType<MenuCatalogService["mapFoodItem"]>,
-          OptionalFoodFields | "modifierGroupIds" | "images"
+          ListOptionalFields
         >
       > = this.mapFoodItem(foodItem);
     if (query.hideFulfillmentOptions) delete result.fulfillmentOptions;
@@ -585,6 +595,8 @@ export class MenuCatalogService {
     if (query.hideSizeOptions) delete result.sizeOptions;
     if (query.hideAppetizerOptions) delete result.appetizerOptions;
     if (query.hideImages) delete result.images;
+    if (query.hideDescription) delete result.description;
+    if (query.hideExtraImages) result.image = result.image.slice(0, 1);
     return result;
   }
 
