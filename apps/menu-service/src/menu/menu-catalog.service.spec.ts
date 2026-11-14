@@ -276,6 +276,31 @@ describe("MenuCatalogService", () => {
       expect(result.items[0]).not.toHaveProperty(field);
   });
 
+  it("hides the description and keeps only the primary image for list cards", async () => {
+    const food = createFood("card");
+    food.images = [
+      { url: "https://img.test/a.jpg", altText: null, sortOrder: 1 },
+      { url: "https://img.test/b.jpg", altText: null, sortOrder: 2 },
+    ] as typeof food.images;
+    prisma.foodItem.findMany.mockResolvedValue([food]);
+    const result = await service.getFoods({
+      page: 1,
+      limit: 20,
+      hideDescription: true,
+      hideExtraImages: true,
+    });
+    expect(prisma.foodItem.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          description: false,
+          descriptionData: false,
+        }),
+      }),
+    );
+    expect(result.items[0]).not.toHaveProperty("description");
+    expect(result.items[0].image).toEqual(["https://img.test/a.jpg"]);
+  });
+
   it("allows individual projections without hiding other food details", async () => {
     prisma.foodItem.findMany.mockResolvedValue([createFood("card")]);
     const result = await service.getFoods({

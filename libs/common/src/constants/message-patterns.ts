@@ -53,6 +53,8 @@ export const IDENTITY_PATTERNS = {
   LIST_FAVORITES: "identity.favorites.list",
   PUT_FAVORITE: "identity.favorites.put",
   DELETE_FAVORITE: "identity.favorites.delete",
+  BETA_SIGNUP: "identity.beta.signup",
+  DEMO_REQUEST: "identity.leads.demoRequest",
   VERIFY_EMAIL: "identity.verifyEmail",
   RESEND_VERIFICATION: "identity.resendVerification",
   SIGNUP: "identity.signup",

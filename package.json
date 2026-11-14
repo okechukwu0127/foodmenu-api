@@ -36,7 +36,9 @@
     "test:ai": "node scripts/test-ai-concierge.cjs",
     "checkout:seed": "node scripts/seed-checkout-policy.cjs",
     "app:seed": "node scripts/seed-app-config.cjs",
-    "test:app-config": "node scripts/test-app-config.cjs"
+    "test:app-config": "node scripts/test-app-config.cjs",
+    "test:beta": "jest --config ./test/jest-e2e.json test/beta-testers.e2e-spec.ts",
+    "test:leads": "jest --config ./test/jest-e2e.json test/website-leads.e2e-spec.ts test/beta-testers.e2e-spec.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.138",

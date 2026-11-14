@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { seedAppConfiguration } from "./seed-data/app-config.seed";
+import { seedLegalDocument } from "./seed-data/legal-documents.seed";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Prisma, PrismaClient } from "@prisma/client";
@@ -451,6 +452,12 @@ async function main() {
     prisma,
     JSON.parse(readFileSync(join(__dirname, "app-config.json"), "utf8")),
   );
+  // Legal documents follow prisma/legal/*.json: updated whenever the file's wording or version changes.
+  for (const doc of ["terms", "privacy"])
+    await seedLegalDocument(
+      prisma,
+      JSON.parse(readFileSync(join(__dirname, "legal", `${doc}.json`), "utf8")),
+    );
   await seedFulfilmentProviders();
 
   await prisma.$transaction(

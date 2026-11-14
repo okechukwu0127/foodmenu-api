@@ -9,6 +9,8 @@ import { CustomerAccessService } from "./customer-access.service";
 
 import { AddressesController } from "./addresses.controller";
 import { FavoritesController } from "./favorites.controller";
+import { BetaTestersController } from "./beta-testers.controller";
+import { DemoRequestsController } from "./demo-requests.controller";
 
 import { ProfilePhotoController } from "./profile-photo.controller";
 
@@ -34,6 +36,8 @@ import { ProfilePhotoController } from "./profile-photo.controller";
     AuthController,
     AddressesController,
     FavoritesController,
+    BetaTestersController,
+    DemoRequestsController,
     ProfilePhotoController,
   ],
   providers: [IdentityClientService, AuthGuard, CustomerAccessService],
